@@ -2,11 +2,6 @@
 # diagnoses and provide an option to create a new .merge variable indicating the merge result for 
 # each row.
 
-
-# Dependencies
-library(dplyr)
-
-
 # Full Join
 full_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE, ...){
     
