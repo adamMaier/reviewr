@@ -1,0 +1,18 @@
+Package: reviewr
+Title: Tools to quality review data wrangling and analysis code
+Version: 0.0.0.9000
+Authors@R: as.person(c(
+    "Adam Maier <adam.maier@tntp.org> [aut, cre]", 
+    "Sam Frike <sam.firke@tntp.org> [aut]"
+))
+Description: Provides noisy functions that replicate commonly used data
+    wrangling steps, like mutating, joining, and filtering. These functions
+    complete the data wrangle, but also tall you what happened to your data
+    -- e.g., how many records were matched, how many NAs were created, how 
+    many records were dropped, etc. -- in each step.
+Depends: R (>= 3.2.4)
+License: CC0
+Encoding: UTF-8
+LazyData: true
+Imports:
+    dplyr (>= 0.5.0) (>= 0.3.0.1)
