@@ -24,17 +24,13 @@ full_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE
     joined <- full_join(x, y, by = by, suffix = suffix,  ...)
     
     # Calculating merge diagnoses 
-    matched <- joined %>% dplyr::tally(!is.na(.x_tracker) & !is.na(.y_tracker))
-    unmatched_x <- joined %>% dplyr::tally(!is.na(.x_tracker) & is.na(.y_tracker))
-    unmatched_y <- joined %>% dplyr::tally(is.na(.x_tracker) & !is.na(.y_tracker))
+    matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
+    unmatched_y <- dplyr::tally(joined, is.na(.x_tracker) & !is.na(.y_tracker))
     
     # Counting extra rows created
-    anti_n_x <- 
-        suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)) %>%
-        tally()
-    anti_n_y <- 
-        suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)) %>%
-        tally()
+    anti_n_x <- dplyr::tally(suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)))
+    anti_n_y <- dplyr::tally(suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)))
     extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
     
@@ -49,14 +45,13 @@ full_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE
     
     # Create .merge variable if specified
     if(.merge){
-        joined <- joined %>%
-            dplyr::mutate(
-                .merge = 
-                    dplyr::case_when(
-                        !is.na(.$.x_tracker) & is.na(.$.y_tracker) ~ "left_only",
-                        is.na(.$.x_tracker) & !is.na(.$.y_tracker) ~ "right_only",
-                        TRUE ~ "matched"
-                    )
+        joined <- dplyr::mutate(
+            joined,
+            .merge = dplyr::case_when(
+                !is.na(.$.x_tracker) & is.na(.$.y_tracker) ~ "left_only",
+                is.na(.$.x_tracker) & !is.na(.$.y_tracker) ~ "right_only",
+                TRUE ~ "matched"
+                )
             )
     }
     
@@ -82,12 +77,8 @@ inner_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), ...){
     unmatched_y <- dplyr::tally(y) - dplyr::tally(joined_right)
     
     # Counting extra rows created
-    anti_n_x <- 
-        suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)) %>%
-        tally()
-    anti_n_y <- 
-        suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)) %>%
-        tally()
+    anti_n_x <- dplyr::tally(suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)))
+    anti_n_y <- dplyr::tally(suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)))
     extra_rows_x <- dplyr::tally(joined) - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- dplyr::tally(joined) - (dplyr::tally(y) - anti_n_y)
 
@@ -129,23 +120,15 @@ left_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE
     joined <- dplyr::left_join(x, y, by = by, suffix = suffix,  ...)
     
     # Calculating merge diagnoses 
-    matched <- joined %>%
-        dplyr::filter(!is.na(.y_tracker)) %>%
-        dplyr::tally()
-    unmatched_x <- joined %>%
-        dplyr::filter(is.na(.y_tracker)) %>%
-        dplyr::tally()
-    unmatched_y <- 
-        suppressMessages(dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)) %>%
-        dplyr::tally()
+    matched <- dplyr::tally(joined, !is.na(.y_tracker))
+    unmatched_x <- dplyr::tally(joined, is.na(.y_tracker))
+    unmatched_y <- dplyr::tally(
+        suppressMessages(dplyr::anti_join(y, x, by = by, suffix = suffix,  ...))
+    )
 
     # Counting extra rows created
-    anti_n_x <- 
-        suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)) %>%
-        tally()
-    anti_n_y <- 
-        suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)) %>%
-        tally()
+    anti_n_x <- dplyr::tally(suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)))
+    anti_n_y <- dplyr::tally(suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)))
     extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
     
@@ -160,10 +143,10 @@ left_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE
     
     # Create .merge variable if specified
     if(.merge){
-        joined <- joined %>%
-            dplyr::mutate(
-                .merge = ifelse(!is.na(.x_tracker) & is.na(.y_tracker), "left_only", "matched")
-            )
+        joined <- dplyr::mutate(
+            joined,
+            .merge = ifelse(!is.na(.x_tracker) & is.na(.y_tracker), "left_only", "matched")
+        )
     }
     
     # Dropping tracker variables and returning data frame
@@ -195,23 +178,15 @@ right_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALS
     joined <- dplyr::right_join(x, y, by = by, suffix = suffix,  ...)
     
     # Calculating merge diagnoses 
-    matched <- joined %>%
-        dplyr::filter(!is.na(.x_tracker)) %>%
-        dplyr::tally()
-    unmatched_y <- joined %>%
-        dplyr::filter(is.na(.x_tracker)) %>%
-        dplyr::tally()
-    unmatched_x <- 
-        suppressMessages(dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)) %>%
-        dplyr::tally()
+    matched <- dplyr::tally(joined, !is.na(.x_tracker))
+    unmatched_y <- dplyr::tally(joined, is.na(.x_tracker))
+    unmatched_x <- dplyr::tally(
+        suppressMessages(dplyr::anti_join(x, y, by = by, suffix = suffix,  ...))
+    )
     
     # Counting extra rows created
-    anti_n_x <- 
-        suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)) %>%
-        tally()
-    anti_n_y <- 
-        suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)) %>%
-        tally()
+    anti_n_x <- dplyr::tally(suppressMessages(anti_join(x, y, by = by, suffix = suffix,  ...)))
+    anti_n_y <- dplyr::tally(suppressMessages(anti_join(y, x, by = by, suffix = suffix,  ...)))
     extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
     
@@ -225,10 +200,10 @@ right_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALS
     
     # Create .merge variable if specified
     if(.merge){
-        joined <- joined %>%
-            dplyr::mutate(
-                .merge = ifelse(is.na(.x_tracker) & !is.na(.y_tracker), "right_only", "matched")
-            )
+        joined <- dplyr::mutate(
+            joined,
+            .merge = ifelse(is.na(.x_tracker) & !is.na(.y_tracker), "right_only", "matched")
+        )
     }
     
     # Dropping tracker variables and returning data frame
