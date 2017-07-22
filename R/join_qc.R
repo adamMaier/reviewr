@@ -221,9 +221,6 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     if (".x_count" %in% names(x)){
         message("Warning: variable .x_count in left data was dropped")
     }
-    if (".y_count" %in% names(y)){
-        message("Warning: variable .y_count in right data was dropped")
-    }
     if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
         stop("Variable .merge already exists; change name before proceeding")
     }
@@ -235,22 +232,16 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     # Extracting matched variables from left and from right
     if (is.null(by)) {
         matched_vars_left <- names(x)[names(x) %in% names(y)]
-        matched_vars_right <- matched_vars_left
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_left <- by
-        matched_vars_right <- matched_vars_left
     } else {
         matched_vars_left <- attr(by, which = "names")
-        matched_vars_right <- unname(by)
     }
     
     # Adding count of rows by matched variables
     x <- dplyr::group_by_at(x, matched_vars_left)
     x <- dplyr::mutate(x, .x_count = n())
     x <- dplyr::ungroup(x)
-    y <- dplyr::group_by_at(y, matched_vars_right)
-    y <- dplyr::mutate(y, .y_count = n())
-    y <- dplyr::ungroup(y)
 
     # Doing join
     joined <- dplyr::left_join(x, y, by = by, suffix = suffix,  ...)
@@ -270,21 +261,14 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
             dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
         )
     )
-    anti_n_y <- dplyr::tally(
-        suppressMessages(
-            dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
-        )
-    )
     extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
-    extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
-    
+
     # Print merge diagnoses
     message(
         matched, " Rows are matches", "\n",
         unmatched_x, " Rows are from left only", "\n",
         unmatched_y, " Rows were dropped from right", "\n",
-        extra_rows_x, " Additional rows with a matched ID than original left", "\n",
-        extra_rows_y, " Additional rows with a matched ID than original right"
+        extra_rows_x, " Additional rows with a matched ID than original left"
     )
     
     # Create .merge variable if specified
@@ -300,21 +284,10 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
         joined <- dplyr::group_by_at(joined, matched_vars_left)
         joined <- dplyr::mutate(joined, .extra = .x_count != n())
         joined <- dplyr::ungroup(joined)
-        joined <- dplyr::group_by_at(joined, matched_vars_right)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                is.na(.y_count) ~ .extra,
-                .y_count != n() ~ T,
-                .y_count == n() & is.na(.extra) ~ F,
-                TRUE ~ .extra
-            )
-        )
-        joined <- dplyr::ungroup(joined)
     }
     
     # Dropping tracker variables and returning data frame
-    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker, -.x_count, -.y_count)
+    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker, -.x_count)
     return(joined)
     
 }
@@ -331,9 +304,6 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     if (".y_tracker" %in% names(y)){
         message("Warning: variable .y_tracker in right data was dropped")
     }
-    if (".x_count" %in% names(x)){
-        message("Warning: variable .x_count in left data was dropped")
-    }
     if (".y_count" %in% names(y)){
         message("Warning: variable .y_count in right data was dropped")
     }
@@ -347,20 +317,14 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Extracting matched variables from left and from right
     if (is.null(by)) {
-        matched_vars_left <- names(x)[names(x) %in% names(y)]
-        matched_vars_right <- matched_vars_left
+        matched_vars_right <- names(x)[names(x) %in% names(y)]
     } else if (is.null(attr(by, which = "names"))) {
-        matched_vars_left <- by
-        matched_vars_right <- matched_vars_left
+        matched_vars_right <- by
     } else {
-        matched_vars_left <- attr(by, which = "names")
         matched_vars_right <- unname(by)
     }
     
     # Adding count of rows by matched variables
-    x <- dplyr::group_by_at(x, matched_vars_left)
-    x <- dplyr::mutate(x, .x_count = n())
-    x <- dplyr::ungroup(x)
     y <- dplyr::group_by_at(y, matched_vars_right)
     y <- dplyr::mutate(y, .y_count = n())
     y <- dplyr::ungroup(y)
@@ -378,17 +342,11 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     )
     
     # Counting extra rows created
-    anti_n_x <- dplyr::tally(
-        suppressMessages(
-            dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
-        )
-    )
     anti_n_y <- dplyr::tally(
         suppressMessages(
             dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
         )
     )
-    extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
     
     # Print merge diagnoses
@@ -409,24 +367,13 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Create .extra variable if specified
     if (.extra) {
-        joined <- dplyr::group_by_at(joined, matched_vars_left)
-        joined <- dplyr::mutate(joined, .extra = .x_count != n())
-        joined <- dplyr::ungroup(joined)
         joined <- dplyr::group_by_at(joined, matched_vars_right)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                is.na(.y_count) ~ .extra,
-                .y_count != n() ~ T,
-                .y_count == n() & is.na(.extra) ~ F,
-                TRUE ~ .extra
-            )
-        )
+        joined <- dplyr::mutate(joined, .extra = .y_count != n())
         joined <- dplyr::ungroup(joined)
     }
     
     # Dropping tracker variables and returning data frame
-    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker, -.x_count, -.y_count)
+    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker, -.y_count)
     return(joined)
     
 }
