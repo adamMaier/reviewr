@@ -48,8 +48,8 @@ full_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), .merge = FALSE
         joined <- dplyr::mutate(
             joined,
             .merge = dplyr::case_when(
-                !is.na(.$.x_tracker) & is.na(.$.y_tracker) ~ "left_only",
-                is.na(.$.x_tracker) & !is.na(.$.y_tracker) ~ "right_only",
+                !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
+                is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
                 TRUE ~ "matched"
                 )
             )
