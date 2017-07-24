@@ -26,9 +26,9 @@ conditon evalutes to `TRUE` are kept.}
 character vector of column names, or a numeric vector of column positions.}
 }
 \value{
-An object of the same class as \code{.data}. This object will be identical
-  to that which is returned when running the standard \code{dplyr::filter} 
-  function or its scoped variant.
+An object of the same class as \code{.data}. This object will be
+  identical to that which is returned when running the standard 
+  \code{dplyr::filter} function or its scoped variant.
 }
 \description{
 \code{filter_qc}, \code{filter_all_qc}, and \code{filter_at_qc} return

@@ -1,8 +1,75 @@
-# Each function below works identically as the dplyr join functions, but also prints some merge 
-# diagnoses and provide an option to create a new .merge variable indicating the merge result for 
-# each row.
+#' Report number of matched and/or extra cases when performing a dplyr join
+#' 
+#' \code{full_join_qc}, \code{inner_join}, \code{left_join}, \code{right_join}, 
+#'   \code{anti_join}, and \code{semi_join} return by default near identical 
+#'   objects as their dplyr equivalents.
+#' 
+#' Each _qc version of the join functions is identical to its dplyr equivalent
+#' except that it automatically prints the number of rows that were matched, the
+#' number of rows that were not matched, and the number of additional rows 
+#' compared to the initial data frame(s), for example when there is more than 
+#' one match on the \code{by} identifier(s). For \code{full_join_qc}, 
+#' \code{left_join}, and \code{right_join}, there is an added option of creating 
+#' a new variable called \code{.merge} that indicates whether the row in the 
+#' joined data was from the \code{"left_only"}, \code{"right_only"} or 
+#' \code{"matched"}. This variable can be helpful when diagnosing why the join 
+#' did or did not match as desired. All join functions except anti and semi also 
+#' have the option of creating a new variable called \code{.extra} which is
+#'  \code{TRUE} if the row in the joined data represents a combination of 
+#'  \code{by} identifiers that has more rows than the original left and/or right
+#'   data frames.
+#' 
+#' @section Grouping:
+#'   Groups are ignored for the purpose of joining, and the result does not 
+#'   preserve the grouping of \code{x}. This is the only difference with the 
+#'   dplyr joins, which do preserve the grouping of \code{x}.
+#' 
+#' @param x,y tbls to join
+#' @param by a character vector of variables to join by. If \code{NULL}, the default,
+#'   \code{*_join} will do a natural join, using all variables with common names
+#'   across the two tables. A message lists the variables so that you can check
+#'   they're right (to suppress the message, simply explicitly list the
+#'    variables that you want to join).
+#'
+#'   To join by different variables on x and y use a named vector.For example, 
+#'   \code{by = c("a" = "b")} will match \code{x.a} to \code{y.b}.
+#' @param copy If \code{x} and \code{y} are not from the same data source,
+#'   and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
+#'   same src as \code{x}.  This allows you to join tables across srcs, but
+#'   it is a potentially expensive operation so you must opt into it
+#' @param ... other parameters passed onto methods
+#' @param .merge A logical value indicating whether a new character variable, 
+#'   \code{.merge}, should be created, which tracks the source of each row of
+#'   the new, joined data. The default is \code{FALSE}. An error will occur if a 
+#'   variable is already named \code{.merge}, so make sure to rename or drop 
+#'   this variable after each join when doing successive joins.
+#' @param .extra A logical value indicating whether a new logical variable, 
+#'   \code{.extra}, should be created, which will be \code{TRUE} for any row of
+#'   the new joined data that represents a combination of the \code{by}
+#'   identifiers that has more rows than the original left and/or right data
+#'   frames. The default is \code{FALSE}. An error will occur if a variable is 
+#'   already named \code{.extra}, so make sure to rename or drop this variable 
+#'   after each join when doing successive joins.
+#' 
+#' @seealso \code{\link[dplyr]{join}}
+#' 
+#' @examples
+#' data_A <- data.frame(id = 1:10, A = 11:20)
+#' data_B <- data.frame(id = c(5, 5, 5, 5, 7, 7, 9, 10, 11, 12), B = 21:30)
+#' 
+#' # Full join with new .merge variable
+#' full_join_qc(data_A, data_B, .merge = T)
+#' 
+#' # Left join with new .extra variable
+#' left_join_qc(data_A, data_B, .extra = T)
+#' 
+#' # Right join with both new variables
+#' right_join_qc(data_A, data_B, .merge = T, .extra = T)
+#' 
+#' @name join_qc
+NULL
 
-# Full Join
+#' @rdname join_qc
 full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
                          .merge = FALSE, .extra = FALSE){
     
@@ -114,8 +181,7 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
   
 }
 
-
-# Inner Join
+#' @rdname join_qc
 inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., 
                           .extra = FALSE){
 
@@ -206,8 +272,7 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
 }
 
-
-# Left Join
+#' @rdname join_qc
 left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., 
                          .merge = FALSE, .extra = FALSE){
     
@@ -292,8 +357,7 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     
 }
 
-
-# Right Join
+#' @rdname join_qc
 right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
                           .merge = FALSE, .extra = F){
     
@@ -378,9 +442,8 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
 }
 
-
-# Anti Join
-anti_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), ...){
+#' @rdname join_qc
+anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
     anti_joined <- dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
@@ -396,9 +459,8 @@ anti_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), ...){
     
 }
 
-
-# Semi Join
-semi_join_qc <- function(x, y, by = NULL, suffix = c(".x", ".y"), ...){
+#' @rdname join_qc
+semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
     joined <- dplyr::semi_join(x, y, by = by, suffix = suffix,  ...)
