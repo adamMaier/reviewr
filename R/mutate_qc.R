@@ -11,10 +11,10 @@
 #' versions print a message indicating the number of NA values created in the
 #' new or edited variable(s) after calling \code{mutate}. 
 #' 
-#' @section Scoped mutation and transmuation:
+#' @section Scoped mutation and transmutation:
 #'   Currently there are not _qc versions of \code{mutate_at}, 
 #'   \code{mutate_all}, or \code{mutate_if}, or the \code{transmute} 
-#'   equivolents.
+#'   equivalents.
 #'
 #' @export
 #'    
@@ -24,7 +24,7 @@
 #'   
 #' @return An object of the same class as \code{.data}. This object will be
 #'   identical to that which is returned when running the standard 
-#'   \code{dplyr::mutate} or \code{dplyr::mutate} functions.
+#'   \code{dplyr::mutate} or \code{dplyr::transmute} functions.
 #' 
 #' @seealso \code{\link[dplyr]{mutate}}
 #' 
@@ -32,6 +32,7 @@
 #' practice_data <- data.frame(A = c(1:4, NA), B = c(NA, 7:10), C = 21:25)
 #' 
 #' mutate_qc(practice_data, new_var = A + B)
+#' 
 #' transmute_qc(
 #'   practice_data,
 #'   new_var_1 = A + B,
