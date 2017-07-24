@@ -217,9 +217,11 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     x <- dplyr::group_by_at(x, matched_vars_left)
     x <- dplyr::mutate(x, .x_count = n())
     x <- dplyr::ungroup(x)
+    y <- as.data.frame(x, stringsAsFactors = F)
     y <- dplyr::group_by_at(y, matched_vars_right)
     y <- dplyr::mutate(y, .y_count = n())
     y <- dplyr::ungroup(y)
+    y <- as.data.frame(y, stringsAsFactors = F)
 
     # Doing joins
     joined <- dplyr::inner_join(x, y, by = by, suffix = suffix,  ...)
@@ -319,6 +321,7 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     x <- dplyr::group_by_at(x, matched_vars_left)
     x <- dplyr::mutate(x, .x_count = n())
     x <- dplyr::ungroup(x)
+    x <- as.data.frame(x, stringsAsFactors = F)
 
     # Doing join
     joined <- dplyr::left_join(x, y, by = by, suffix = suffix,  ...)
@@ -397,21 +400,22 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Extracting matched variables from left and from right
     if (is.null(by)) {
-        matched_vars_right <- names(x)[names(x) %in% names(y)]
+        matched_vars_right <- names(y)[names(y) %in% names(x)]
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_right <- by
     } else {
         matched_vars_right <- unname(by)
     }
-    
+
     # Adding count of rows by matched variables
     y <- dplyr::group_by_at(y, matched_vars_right)
     y <- dplyr::mutate(y, .y_count = n())
     y <- dplyr::ungroup(y)
-    
+    y <- as.data.frame(y, stringsAsFactors = F)
+
     # Doing join
     joined <- dplyr::right_join(x, y, by = by, suffix = suffix,  ...)
-    
+
     # Calculating merge diagnoses 
     matched <- dplyr::tally(joined, !is.na(.x_tracker))
     unmatched_y <- dplyr::tally(joined, is.na(.x_tracker))
