@@ -1,10 +1,7 @@
 Package: reviewr
 Title: Tools to quality review data wrangling and analysis code
 Version: 0.0.0.9000
-Authors@R: as.person(c(
-    "Adam Maier <adam.maier@tntp.org> [aut, cre]", 
-    "Sam Frike <sam.firke@tntp.org> [aut]"
-))
+Authors@R: person("Adam", "Maier", email = "adam.maier@tntp.org", role = c("aut", "cre"))
 Description: Provides noisy functions that replicate commonly used data
     wrangling steps, like mutating, joining, and filtering. These functions
     complete the data wrangle, but also tall you what happened to your data
@@ -16,3 +13,4 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     dplyr (>= 0.5.0) (>= 0.3.0.1)
+RoxygenNote: 6.0.1
