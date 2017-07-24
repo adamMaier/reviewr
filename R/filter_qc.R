@@ -15,6 +15,8 @@
 #'   variants make it easy to apply a filtering condition to a selection of
 #'   variables. See corresponding dplyr filter help documentation for more 
 #'   details on how to use any of the filter variants.
+#'   
+#' @export
 #' 
 #' @param .data A tbl.
 #' @param ... Logical predicates defined in terms of the variables in `.data`.
@@ -66,6 +68,7 @@ filter_qc <- function(.data, ...){
 }
 
 #' @rdname filter_qc
+#' @export
 filter_all_qc <- function(.tbl, .vars_predicate){
   
   # Storing initial argument

@@ -70,6 +70,7 @@
 NULL
 
 #' @rdname join_qc
+#' @export
 full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
                          .merge = FALSE, .extra = FALSE){
     
@@ -185,6 +186,7 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
 }
 
 #' @rdname join_qc
+#' @export
 inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., 
                           .extra = FALSE){
 
@@ -279,6 +281,7 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 }
 
 #' @rdname join_qc
+#' @export
 left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ..., 
                          .merge = FALSE, .extra = FALSE){
     
@@ -367,6 +370,7 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
 }
 
 #' @rdname join_qc
+#' @export
 right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
                           .merge = FALSE, .extra = F){
     
@@ -455,6 +459,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 }
 
 #' @rdname join_qc
+#' @export
 anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
@@ -472,6 +477,7 @@ anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
 }
 
 #' @rdname join_qc
+#' @export
 semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
