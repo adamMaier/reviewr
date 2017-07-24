@@ -89,6 +89,9 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
         stop("Variable .merge already exists; change name before proceeding")
     }
+    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
+      stop("Variable .extra already exists; change name before proceeding")
+    }
     
     # Adding simple merge tracker variables to data frames
     x <- dplyr::mutate(x, .x_tracker = 1)
@@ -192,6 +195,9 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     if (".y_count" %in% names(y)){
         message("Warning: variable .y_count in right data was dropped")
     }
+    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
+        stop("Variable .extra already exists; change name before proceeding")
+    }
     
     # Extracting matched variables from left and from right
     if (is.null(by)) {
@@ -289,7 +295,10 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
         stop("Variable .merge already exists; change name before proceeding")
     }
-    
+    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
+        stop("Variable .extra already exists; change name before proceeding")
+    }
+  
     # Adding simple merge tracker variables to data frames
     x <- dplyr::mutate(x, .x_tracker = 1)
     y <- dplyr::mutate(y, .y_tracker = 1)
@@ -374,7 +383,10 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
         stop("Variable .merge already exists; change name before proceeding")
     }
-    
+    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
+        stop("Variable .extra already exists; change name before proceeding")
+    }
+  
     # Adding simple merge tracker variables to data frames
     x <- dplyr::mutate(x, .x_tracker = 1)
     y <- dplyr::mutate(y, .y_tracker = 1)
