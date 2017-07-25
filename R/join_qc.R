@@ -104,19 +104,35 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
         matched_vars_right <- matched_vars_left
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_left <- by
-        matched_vars_right <- matched_vars_left
+        matched_vars_right <- by
     } else {
-        matched_vars_left <- attr(by, which = "names")
+        matched_vars_left <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
         matched_vars_right <- unname(by)
     }
+    
+    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
+    # on non-equivalent names
+    by_reverse <- c(
+        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+        by[grepl("^$", attr(by, which = "names"))]
+    )
+    attr(by_reverse, which = "names") <- c(
+        unname(by)[grepl(".", attr(by, which = "names"))],
+        unname(by)[grepl("^$", attr(by, which = "names"))]
+    )
     
     # Adding count of rows by matched variables
     x <- dplyr::group_by_at(x, matched_vars_left)
     x <- dplyr::mutate(x, .x_count = n())
     x <- dplyr::ungroup(x)
+    x <- as.data.frame(x, stringsAsFactors = F)
     y <- dplyr::group_by_at(y, matched_vars_right)
     y <- dplyr::mutate(y, .y_count = n())
     y <- dplyr::ungroup(y)
+    y <- as.data.frame(y, stringsAsFactors = F)
     
     # Doing full join
     joined <- dplyr::full_join(x, y, by = by, copy = copy, suffix = suffix,  ...)
@@ -134,7 +150,7 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     )
     anti_n_y <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
+            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
         )
     )
     extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
@@ -161,14 +177,12 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
             )
     }
     
-    # Create .extra variable if specified
+    # Create .extra variable if specified and ensure output is a data frame if both inputs were
     if (.extra) {
         joined <- dplyr::group_by_at(joined, matched_vars_left)
         joined <- dplyr::mutate(joined, .extra = .x_count != n())
-        joined <- dplyr::ungroup(joined)
-        joined <- dplyr::group_by_at(joined, matched_vars_right)
         joined <- dplyr::mutate(
-            joined, 
+            joined,
             .extra = dplyr::case_when(
                 is.na(.y_count) ~ .extra,
                 .y_count != n() ~ T,
@@ -177,6 +191,9 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
             )
         )
         joined <- dplyr::ungroup(joined)
+    }
+    if (.extra & is.data.frame(x) & is.data.frame(y)) {
+        joined <- as.data.frame(joined, stringsAsFactors = F)
     }
 
     # Dropping tracker variables and returning data frame
@@ -207,17 +224,31 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
         matched_vars_right <- matched_vars_left
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_left <- by
-        matched_vars_right <- matched_vars_left
+        matched_vars_right <- by
     } else {
-        matched_vars_left <- attr(by, which = "names")
+        matched_vars_left <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
         matched_vars_right <- unname(by)
     }
+    
+    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
+    # on non-equivalent names
+    by_reverse <- c(
+        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+        by[grepl("^$", attr(by, which = "names"))]
+    )
+    attr(by_reverse, which = "names") <- c(
+        unname(by)[grepl(".", attr(by, which = "names"))],
+        unname(by)[grepl("^$", attr(by, which = "names"))]
+    )
     
     # Adding count of rows by matched variables
     x <- dplyr::group_by_at(x, matched_vars_left)
     x <- dplyr::mutate(x, .x_count = n())
     x <- dplyr::ungroup(x)
-    y <- as.data.frame(x, stringsAsFactors = F)
+    x <- as.data.frame(x, stringsAsFactors = F)
     y <- dplyr::group_by_at(y, matched_vars_right)
     y <- dplyr::mutate(y, .y_count = n())
     y <- dplyr::ungroup(y)
@@ -226,7 +257,7 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     # Doing joins
     joined <- dplyr::inner_join(x, y, by = by, suffix = suffix,  ...)
     joined_left <- suppressMessages(dplyr::semi_join(x, y, by = by, suffix = suffix,  ...))
-    joined_right <- suppressMessages(dplyr::semi_join(y, x, by = by, suffix = suffix,  ...))
+    joined_right <- suppressMessages(dplyr::semi_join(y, x, by = by_reverse, suffix = suffix,  ...))
     
     # Calculating merge diagnoses
     matched_x <- dplyr::tally(joined_left)
@@ -242,7 +273,7 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     )
     anti_n_y <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
+            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
         )
     )
     extra_rows_x <- dplyr::tally(joined) - (dplyr::tally(x) - anti_n_x)
@@ -258,12 +289,10 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
         extra_rows_y, " Additional rows with a matched ID than original right"
     )
     
-    # Create .extra variable if specified
+    # Create .extra variable if specified and ensure output is a data frame if both inputs were
     if (.extra) {
         joined <- dplyr::group_by_at(joined, matched_vars_left)
         joined <- dplyr::mutate(joined, .extra = .x_count != n())
-        joined <- dplyr::ungroup(joined)
-        joined <- dplyr::group_by_at(joined, matched_vars_right)
         joined <- dplyr::mutate(
             joined, 
             .extra = dplyr::case_when(
@@ -274,6 +303,9 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
             )
         )
         joined <- dplyr::ungroup(joined)
+    }
+    if (.extra & is.data.frame(x) & is.data.frame(y)) {
+        joined <- as.data.frame(joined, stringsAsFactors = F)
     }
     
     # Dropping tracker variables and returning data frame
@@ -314,8 +346,22 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_left <- by
     } else {
-        matched_vars_left <- attr(by, which = "names")
+        matched_vars_left <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
     }
+    
+    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
+    # on non-equivalent names
+    by_reverse <- c(
+        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+        by[grepl("^$", attr(by, which = "names"))]
+    )
+    attr(by_reverse, which = "names") <- c(
+        unname(by)[grepl(".", attr(by, which = "names"))],
+        unname(by)[grepl("^$", attr(by, which = "names"))]
+    )
     
     # Adding count of rows by matched variables
     x <- dplyr::group_by_at(x, matched_vars_left)
@@ -331,7 +377,7 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
     unmatched_x <- dplyr::tally(joined, is.na(.y_tracker))
     unmatched_y <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
+            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
         )
     )
 
@@ -359,11 +405,14 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
         )
     }
     
-    # Create .extra variable if specified
+    # Create .extra variable if specified and ensure output is a data frame if both inputs were
     if (.extra) {
         joined <- dplyr::group_by_at(joined, matched_vars_left)
         joined <- dplyr::mutate(joined, .extra = .x_count != n())
         joined <- dplyr::ungroup(joined)
+    }
+    if (.extra & is.data.frame(x) & is.data.frame(y)) {
+        joined <- as.data.frame(joined, stringsAsFactors = F)
     }
     
     # Dropping tracker variables and returning data frame
@@ -401,11 +450,28 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     # Extracting matched variables from left and from right
     if (is.null(by)) {
         matched_vars_right <- names(y)[names(y) %in% names(x)]
+        matched_vars_left <- matched_vars_right
     } else if (is.null(attr(by, which = "names"))) {
         matched_vars_right <- by
+        matched_vars_left <- by
     } else {
         matched_vars_right <- unname(by)
+        matched_vars_left <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
     }
+    
+    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
+    # on non-equivalent names
+    by_reverse <- c(
+        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+        by[grepl("^$", attr(by, which = "names"))]
+    )
+    attr(by_reverse, which = "names") <- c(
+        unname(by)[grepl(".", attr(by, which = "names"))],
+        unname(by)[grepl("^$", attr(by, which = "names"))]
+    )
 
     # Adding count of rows by matched variables
     y <- dplyr::group_by_at(y, matched_vars_right)
@@ -415,7 +481,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 
     # Doing join
     joined <- dplyr::right_join(x, y, by = by, suffix = suffix,  ...)
-
+    
     # Calculating merge diagnoses 
     matched <- dplyr::tally(joined, !is.na(.x_tracker))
     unmatched_y <- dplyr::tally(joined, is.na(.x_tracker))
@@ -428,7 +494,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     # Counting extra rows created
     anti_n_y <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(y, x, by = by, suffix = suffix,  ...)
+            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
         )
     )
     extra_rows_y <- matched - (dplyr::tally(y) - anti_n_y)
@@ -441,7 +507,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
         extra_rows_y, " Additional rows with a matched ID than original right"
     )
     
-    # Create .merge variable if specified
+    # Create .merge variable if specified 
     if(.merge){
         joined <- dplyr::mutate(
             joined,
@@ -449,11 +515,16 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
         )
     }
     
-    # Create .extra variable if specified
+    # Create .extra variable if specified (using matched_cars_left because names will default to
+    # left names when they were not the same to begin with)
+    # And ensure output is a data frame if both inputs were
     if (.extra) {
-        joined <- dplyr::group_by_at(joined, matched_vars_right)
+        joined <- dplyr::group_by_at(joined, matched_vars_left)
         joined <- dplyr::mutate(joined, .extra = .y_count != n())
         joined <- dplyr::ungroup(joined)
+    }
+    if (.extra & is.data.frame(x) & is.data.frame(y)) {
+        joined <- as.data.frame(joined, stringsAsFactors = F)
     }
     
     # Dropping tracker variables and returning data frame
