@@ -17,9 +17,9 @@
 #' have the option of creating a new variable called \code{.extra} which 
 #' indicates whether the row in the joined data is an additional row with the
 #' given combination of \code{by}. For example, if there were only 2 rows with
-#' an id equal to "A" in the original left data set but 3 rows with this if in
-#' the right data set, then the joined data will have more rows with this if 
-#' than the original left. \code{.extra} flags whether a row represents a
+#' an ID equal to "A" in the original left data set but 3 rows with this ID in
+#' the right data set, then the left joined data will have more rows with this 
+#' ID than the original left. \code{.extra} flags whether a row represents a
 #' combination on \code{by} that has additional rows than the original left
 #' \code{.extra = "extra_left"}, right \code{.extra = "extra_left"}, both
 #' \code{.extra = "extra_both"} or none \code{.extra = "not_extra"}.
