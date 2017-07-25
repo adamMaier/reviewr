@@ -10,17 +10,17 @@
 \alias{semi_join_qc}
 \title{Report number of matched and/or extra cases when performing a dplyr join}
 \usage{
-full_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
-  .merge = FALSE, .extra = FALSE)
+full_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+  .merge = FALSE, .extra = FALSE, ...)
 
-inner_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
-  .extra = FALSE)
+inner_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+  .extra = FALSE, ...)
 
-left_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
-  .merge = FALSE, .extra = FALSE)
+left_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+  .merge = FALSE, .extra = FALSE, ...)
 
-right_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), ...,
-  .merge = FALSE, .extra = F)
+right_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+  .merge = FALSE, .extra = FALSE, ...)
 
 anti_join_qc(x, y, by = NULL, copy = FALSE, ...)
 
@@ -43,21 +43,21 @@ and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
 same src as \code{x}.  This allows you to join tables across srcs, but
 it is a potentially expensive operation so you must opt into it}
 
-\item{...}{other parameters passed onto methods}
-
 \item{.merge}{A logical value indicating whether a new character variable, 
 \code{.merge}, should be created, which tracks the source of each row of
 the new, joined data. The default is \code{FALSE}. An error will occur if a 
 variable is already named \code{.merge}, so make sure to rename or drop 
 this variable after each join when doing successive joins.}
 
-\item{.extra}{A logical value indicating whether a new logical variable, 
+\item{.extra}{A logical value indicating whether a new character variable, 
 \code{.extra}, should be created, which will be \code{TRUE} for any row of
 the new joined data that represents a combination of the \code{by}
 identifiers that has more rows than the original left and/or right data
 frames. The default is \code{FALSE}. An error will occur if a variable is 
 already named \code{.extra}, so make sure to rename or drop this variable 
 after each join when doing successive joins.}
+
+\item{...}{other parameters passed onto methods}
 }
 \description{
 \code{full_join_qc}, \code{inner_join}, \code{left_join}, \code{right_join}, 
@@ -70,15 +70,20 @@ except that it automatically prints the number of rows that were matched, the
 number of rows that were not matched, and the number of additional rows 
 compared to the initial data frame(s), for example when there is more than 
 one match on the \code{by} identifier(s). For \code{full_join_qc}, 
-\code{left_join}, and \code{right_join}, there is an added option of creating 
-a new variable called \code{.merge} that indicates whether the row in the 
-joined data was from the \code{"left_only"}, \code{"right_only"} or 
+\code{left_join_qc}, and \code{right_join_qc}, there is an added option of 
+creating a new variable called \code{.merge} that indicates whether the row
+in the joined data was from the \code{"left_only"}, \code{"right_only"} or 
 \code{"matched"}. This variable can be helpful when diagnosing why the join 
 did or did not match as desired. All join functions except anti and semi also 
-have the option of creating a new variable called \code{.extra} which is
- \code{TRUE} if the row in the joined data represents a combination of 
- \code{by} identifiers that has more rows than the original left and/or right
-  data frames.
+have the option of creating a new variable called \code{.extra} which 
+indicates whether the row in the joined data is an additional row with the
+given combination of \code{by}. For example, if there were only 2 rows with
+an id equal to "A" in the original left data set but 3 rows with this if in
+the right data set, then the joined data will have more rows with this if 
+than the original left. \code{.extra} flags whether a row represents a
+combination on \code{by} that has additional rows than the original left
+\code{.extra = "extra_left"}, right \code{.extra = "extra_left"}, both
+\code{.extra = "extra_both"} or none \code{.extra = "not_extra"}.
 }
 \section{Grouping}{
 
