@@ -59,7 +59,7 @@ mutate_qc <- function(.data, ...){
 #' @export
 transmute_qc <- function(.data, ...){
   
-  # Performing mutate
+  # Performing transmute
   out <- dplyr::transmute(.data, ...)
   
   # Counting number of NAs in each transmutate call by making each new variable
