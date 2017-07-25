@@ -76,7 +76,7 @@ NULL
 
 #' @rdname join_qc
 #' @export
-full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
+full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = FALSE, .extra = FALSE, ...){
     
     # Checking to make sure used variable names are not already in use
@@ -120,14 +120,18 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
     # on non-equivalent names
-    by_reverse <- c(
-        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-        by[grepl("^$", attr(by, which = "names"))]
-    )
-    attr(by_reverse, which = "names") <- c(
-        unname(by)[grepl(".", attr(by, which = "names"))],
-        unname(by)[grepl("^$", attr(by, which = "names"))]
-    )
+    if (!is.null(attr(by, which = "names"))) {
+        by_reverse <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
+        attr(by_reverse, which = "names") <- c(
+            unname(by)[grepl(".", attr(by, which = "names"))],
+            unname(by)[grepl("^$", attr(by, which = "names"))]
+        )
+    } else {
+        by_reverse <- by
+    }
     
     # Doing full join
     joined <- dplyr::full_join(x, y, by = by, copy = copy, suffix = suffix,  ...)
@@ -239,14 +243,18 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
     # on non-equivalent names
-    by_reverse <- c(
-        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-        by[grepl("^$", attr(by, which = "names"))]
-    )
-    attr(by_reverse, which = "names") <- c(
-        unname(by)[grepl(".", attr(by, which = "names"))],
-        unname(by)[grepl("^$", attr(by, which = "names"))]
-    )
+    if (!is.null(attr(by, which = "names"))){
+        by_reverse <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
+        attr(by_reverse, which = "names") <- c(
+            unname(by)[grepl(".", attr(by, which = "names"))],
+            unname(by)[grepl("^$", attr(by, which = "names"))]
+        )
+    } else {
+        by_reverse <- by
+    }
     
     # Doing joins
     joined <- dplyr::inner_join(x, y, by = by, suffix = suffix,  ...)
@@ -357,14 +365,18 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
     # on non-equivalent names
-    by_reverse <- c(
-        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-        by[grepl("^$", attr(by, which = "names"))]
-    )
-    attr(by_reverse, which = "names") <- c(
-        unname(by)[grepl(".", attr(by, which = "names"))],
-        unname(by)[grepl("^$", attr(by, which = "names"))]
-    )
+    if (!is.null(attr(by, which = "names"))) {
+        by_reverse <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
+        attr(by_reverse, which = "names") <- c(
+            unname(by)[grepl(".", attr(by, which = "names"))],
+            unname(by)[grepl("^$", attr(by, which = "names"))]
+        )
+    } else {
+        by_reverse <- by
+    }
     
     # Doing join
     joined <- dplyr::left_join(x, y, by = by, suffix = suffix,  ...)
@@ -470,16 +482,20 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
     # on non-equivalent names
-    by_reverse <- c(
-        attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-        by[grepl("^$", attr(by, which = "names"))]
-    )
-    attr(by_reverse, which = "names") <- c(
-        unname(by)[grepl(".", attr(by, which = "names"))],
-        unname(by)[grepl("^$", attr(by, which = "names"))]
-    )
-
-    # Doing join
+    if (!is.null(attr(by, which = "names"))) {
+        by_reverse <- c(
+            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
+            by[grepl("^$", attr(by, which = "names"))]
+        )
+        attr(by_reverse, which = "names") <- c(
+            unname(by)[grepl(".", attr(by, which = "names"))],
+            unname(by)[grepl("^$", attr(by, which = "names"))]
+        )
+    } else {
+        by_reverse <- by
+    }
+    
+        # Doing join
     joined <- dplyr::right_join(x, y, by = by, suffix = suffix,  ...)
     
     # Calculating merge diagnoses 
