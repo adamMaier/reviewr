@@ -7,54 +7,67 @@
 #' Each _qc version of the join functions is identical to its dplyr equivalent
 #' except that it automatically prints the number of rows that were matched, the
 #' number of rows that were not matched, and the number of additional rows 
-#' compared to the initial data frame(s), for example when there is more than 
-#' one match on the \code{by} identifier(s). For \code{full_join_qc}, 
-#' \code{left_join_qc}, and \code{right_join_qc}, there is an added option of 
-#' creating a new variable called \code{.merge} that indicates whether the row
-#' in the joined data was from the \code{"left_only"}, \code{"right_only"} or 
-#' \code{"matched"}. This variable can be helpful when diagnosing why the join 
-#' did or did not match as desired. All join functions except anti and semi also 
-#' have the option of creating a new variable called \code{.extra} which 
-#' indicates whether the row in the joined data is an additional row with the
-#' given combination of \code{by}. For example, if there were only 2 rows with
-#' an ID equal to "A" in the original left data set but 3 rows with this ID in
-#' the right data set, then the left joined data will have more rows with this 
-#' ID than the original left. \code{.extra} flags whether a row represents a
-#' combination on \code{by} that has additional rows than the original left
-#' \code{.extra = "extra_left"}, right \code{.extra = "extra_left"}, both
-#' \code{.extra = "extra_both"} or none \code{.extra = "not_extra"}.
+#' compared to the initial data frame(s) when doing a \code{left} or 
+#' \code{right} join, for example when there is more than one match on the
+#' \code{by} identifier(s). There are also options to create new variables 
+#' identifying and classifying rows based on how/if they matched.
+#' 
+#' @section Optional New Variables:
+#'   For \code{full_join_qc}, \code{left_join_qc}, and \code{right_join_qc}, 
+#'   there is an added option of creating a new variable called \code{.merge} 
+#'   that indicates whether the row in the joined data was from the 
+#'   \code{"left_only"}, \code{"right_only"} or \code{"matched"}. This variable 
+#'   can be helpful when diagnosing why the join did or did not match as 
+#'   desired. 
+#' 
+#'   \code{left_join_qc}, and \code{right_join_qc} also have the option of 
+#'   creating a new variable called \code{.extra} which indicates whether the 
+#'   row in the  joined data is an additional row with the given combination of
+#'   \code{by}. For example, if there were only 2 rows with an ID equal to "A" 
+#'   in the original left data set but 3 rows with this ID in the right data 
+#'   set, then the left joined data will have more rows with this ID than the 
+#'   original left. \code{.extra} is a logical that when \code{.extra = TRUE}
+#'   flags a row on \code{by} that has additional rows than the original left 
+#'   or right data frame depending on whether \code{left_join_qc} or
+#'    \code{right_join_qc} was called.
 #' 
 #' @section Grouping:
-#'   Groups are ignored for the purpose of joining, and the result does not 
-#'   preserve the grouping of \code{x}. This is the only difference with the 
-#'   dplyr joins, which do preserve the grouping of \code{x}.
+#'   Groups in the data frames are ignored for the purpose of joining, and the
+#'   result does not preserve the grouping of \code{x}. This is the only
+#'   difference with the dplyr joins, which do preserve the grouping of \code{x}.
 #' 
 #' @param x,y tbls to join
-#' @param by a character vector of variables to join by. If \code{NULL}, the default,
-#'   \code{*_join} will do a natural join, using all variables with common names
-#'   across the two tables. A message lists the variables so that you can check
-#'   they're right (to suppress the message, simply explicitly list the
-#'    variables that you want to join).
+#' 
+#' @param by a character vector of variables to join by. If \code{NULL}, the 
+#'   default, \code{*_join_qc} will do a natural join, using all variables with 
+#'   common names across the two tables. A message lists the variables so that 
+#'   you can check they're right (to suppress the message, simply explicitly 
+#'   list the variables that you want to join).
 #'
-#'   To join by different variables on x and y use a named vector.For example, 
+#'   To join by different variables on x and y use a named vector. For example, 
 #'   \code{by = c("a" = "b")} will match \code{x.a} to \code{y.b}.
+#'   
 #' @param copy If \code{x} and \code{y} are not from the same data source,
 #'   and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
-#'   same src as \code{x}.  This allows you to join tables across srcs, but
-#'   it is a potentially expensive operation so you must opt into it
-#' @param ... other parameters passed onto methods
-#' @param .merge A logical value indicating whether a new character variable, 
-#'   \code{.merge}, should be created, which tracks the source of each row of
-#'   the new, joined data. The default is \code{FALSE}. An error will occur if a 
-#'   variable is already named \code{.merge}, so make sure to rename or drop 
-#'   this variable after each join when doing successive joins.
-#' @param .extra A logical value indicating whether a new character variable, 
-#'   \code{.extra}, should be created, which will be \code{TRUE} for any row of
-#'   the new joined data that represents a combination of the \code{by}
-#'   identifiers that has more rows than the original left and/or right data
-#'   frames. The default is \code{FALSE}. An error will occur if a variable is 
-#'   already named \code{.extra}, so make sure to rename or drop this variable 
-#'   after each join when doing successive joins.
+#'   same src as \code{x}. This allows you to join tables across srcs, but
+#'   it is a potentially expensive operation so you must opt into it.
+#'   
+#' @param ... other parameters passed onto methods.
+#' 
+#' @param .merge a character value used to name a new character variable, which
+#'   tracks the source of each row of the new, joined data. If \code{NULL}, the
+#'   default, no new merge-tracking variable will be created. An error will
+#'   occur if a variable is already named the value specified in\code{.merge}, 
+#'   so make sure to choose different names for different joins.
+#'   
+#' @param .extra a character value used to name a new logical variablee, which 
+#'   will be \code{TRUE} for any row of the new joined data that represents a 
+#'   combination of the \code{by} identifiers that has more rows than the 
+#'   original left and/or right data frames. If \code{NULL}, the default, no new
+#'   extra row tracking variable will be created. An error will occur if a 
+#'   variable is already named the value specified in\code{.extra}, so make sure
+#'   to choose different names for different joins. This is only an option for
+#'   \code{left_join_qc}, and \code{right_join_qc}.
 #' 
 #' @seealso \code{\link[dplyr]{join}}
 #' 
@@ -63,13 +76,13 @@
 #' data_B <- data.frame(id = c(5, 5, 5, 5, 7, 7, 9, 10, 11, 12), B = 21:30)
 #' 
 #' # Full join with new .merge variable
-#' full_join_qc(data_A, data_B, .merge = T)
+#' full_join_qc(data_A, data_B, .merge = "merge_ab")
 #' 
 #' # Left join with new .extra variable
-#' left_join_qc(data_A, data_B, .extra = T)
+#' left_join_qc(data_A, data_B, .extra = "extra_ab")
 #' 
 #' # Right join with both new variables
-#' right_join_qc(data_A, data_B, .merge = T, .extra = T)
+#' right_join_qc(data_A, data_B, .merge = "merge_ab", .extra = "extra_ab")
 #' 
 #' @name join_qc
 NULL
