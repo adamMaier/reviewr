@@ -39,19 +39,66 @@
 #'   new_var_2 = A - C
 #' )
 
+# Helper Function
+na_counter <- function(.data, ...){
+
+  # Counting number of NAs in each mutate call by making each new variable then 
+  # counting NAs in each and storing as list element with appropriate var name.
+  # Separate processes if data is grouped
+    
+  # Ungrouped
+  if (is.null(attr(.data, "vars"))) {
+        
+    new_vars <- dplyr::transmute(.data, ...)
+    num_na <- 
+      dplyr::summarize_all(
+        new_vars, 
+        dplyr::funs(sum(is.na(.) | is.infinite(.)))
+      )
+        
+    mapply(
+      FUN = function(x, y) message(x, " NAs or INFs produced in ", y), 
+      x = num_na, y = names(num_na)
+    )
+  }
+    
+  # Grouped
+  if (!is.null(attr(.data, "vars"))) {
+        
+    group_var <- attr(.data, "vars")
+        
+      new_vars <- suppressMessages(dplyr::transmute(.data, ...))
+      new_vars <- dplyr::ungroup(new_vars)
+        
+      keep_vars <- names(new_vars)[!names(new_vars) %in% group_var]
+      new_vars <- dplyr::select_at(new_vars, keep_vars)
+        
+      num_na <- 
+        dplyr::summarize_all(
+          new_vars, 
+          dplyr::funs(sum(is.na(.) | is.infinite(.)))
+        )
+        
+      mapply(
+        FUN = function(x, y) message(x, " NAs or INFs produced in ", y), 
+        x = num_na, y = names(num_na)
+      )
+  }
+    
+}
+
+#' @rdname mutate_qc
+#' @export
 mutate_qc <- function(.data, ...){
     
-  # Counting number of NAs in each mutate call by making each new variable then 
-  # counting NAs in each and storing as list element with appropriate var name
-  new_vars <- dplyr::transmute(.data, ...)
-  num_na <- dplyr::summarize_all(new_vars, dplyr::funs(sum(is.na(.))))
-  mapply(
-    FUN = function(x, y) message(x, " NAs produced in ", y), 
-    x = num_na, y = names(num_na)
-  )
-    
   # Performing mutate
-  dplyr::mutate(.data, ...)
+  out <- dplyr::mutate(.data, ...)
+   
+  # Print NAs
+  na_counter(.data, ...)
+  
+  # Returning data
+  return(out)
   
 }
 
@@ -62,13 +109,8 @@ transmute_qc <- function(.data, ...){
   # Performing transmute
   out <- dplyr::transmute(.data, ...)
   
-  # Counting number of NAs in each transmutate call and storing as a list
-  # element with appropraite variable name
-  num_na <- dplyr::summarize_all(out, dplyr::funs(sum(is.na(.))))
-  mapply(
-      FUN = function(x, y) message(x, " NAs produced in ", y), 
-      x = num_na, y = names(num_na)
-  )
+  # Print NAs
+  na_counter(.data, ...)
   
   # Returning data
   return(out)
