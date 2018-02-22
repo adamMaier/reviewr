@@ -51,8 +51,10 @@
 #'   and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
 #'   same src as \code{x}. This allows you to join tables across srcs, but
 #'   it is a potentially expensive operation so you must opt into it.
-#'   
-#' @param ... other parameters passed onto methods.
+#' 
+#' @param suffix If there are non-joined duplicate variables in x and y, these
+#'   suffixes will be added to the output to diambiguate them. Should be a 
+#'   character vector of length 2.
 #' 
 #' @param .merge a character value used to name a new character variable, which
 #'   tracks the source of each row of the new, joined data. If \code{NULL}, the
@@ -69,11 +71,13 @@
 #'   to choose different names for different joins. This is only an option for
 #'   \code{left_join_qc}, and \code{right_join_qc}.
 #' 
+#' @param ... other parameters passed onto methods.
+#' 
 #' @seealso \code{\link[dplyr]{join}}
 #' 
 #' @examples
-#' data_A <- data.frame(id = 1:10, A = 11:20)
-#' data_B <- data.frame(id = c(5, 5, 5, 5, 7, 7, 9, 10, 11, 12), B = 21:30)
+#' data_A <- data.frame(id = 1:10, var_A = 11:20)
+#' data_B <- data.frame(id = c(5, 5, 5, 5, 6, 7, 7, 9, 10, 11), id_A = c(1:10), var_B = 21:30)
 #' 
 #' # Full join with new .merge variable
 #' full_join_qc(data_A, data_B, .merge = "merge_ab")
@@ -90,69 +94,91 @@ NULL
 #' @rdname join_qc
 #' @export
 full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                         .merge = FALSE, .extra = FALSE, ...){
+                         .merge = NULL, .extra = NULL, ...){
     
-    # Checking to make sure used variable names are not already in use
-    if (".x_tracker" %in% names(x)){
-        message("Warning: variable .x_tracker in left data was dropped")
-    }
-    if (".y_tracker" %in% names(y)){
-        message("Warning: variable .y_tracker in right data was dropped")
-    }
-    if (".x_count" %in% names(x)){
-        message("Warning: variable .x_count in left data was dropped")
-    }
-    if (".y_count" %in% names(y)){
-        message("Warning: variable .y_count in right data was dropped")
-    }
-    if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
-        stop("Variable .merge already exists; change name before proceeding")
-    }
-    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
-      stop("Variable .extra already exists; change name before proceeding")
-    }
+    # Removing all group attributes from tables, but keeping group of x to 
+    # re-apply after merge
+    x_group <- attr(x, "vars")
+    x <- dplyr::ungroup(x)
+    y <- dplyr::ungroup(y)
     
-    # Adding simple merge tracker variables to data frames
-    x <- dplyr::mutate(x, .x_tracker = 1)
-    y <- dplyr::mutate(y, .y_tracker = 1)
+    # Checking to make sure variable names used in function are not already in
+    # use, and supply warning if so.
+    if (".x_tracker" %in% names(x)) {
+        message("Warning: variable .x_tracker in left table was dropped")
+    }
+    if (".y_tracker" %in% names(y)) {
+        message("Warning: variable .y_tracker in right table was dropped")
+    }
+
+    if (!is.null(.merge)) {
+        if (.merge %in% names(x) | .merge %in% names(y)) {
+            stop(
+                paste0(
+                    "Column '", 
+                    .merge, 
+                    "' already exists; change .merge name before proceeding"
+                )
+            )
+        }
+    }
+
+    # Adding simple merge tracker variables to tables
+    x <- dplyr::mutate(x, .x_tracker = T)
+    y <- dplyr::mutate(y, .y_tracker = T)
     
-    # Extracting matched variables from left and from right
+    # Extracting matched variables from left and from right. First is if no
+    # by is specified, then if by is a character vector of matched variables,
+    # then if by is a named vector.
     if (is.null(by)) {
         matched_vars_left <- names(x)[names(x) %in% names(y)]
         matched_vars_right <- matched_vars_left
-    } else if (is.null(attr(by, which = "names"))) {
+    } else if (is.null(names(by))) {
         matched_vars_left <- by
         matched_vars_right <- by
     } else {
-        matched_vars_left <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
+        matched_vars_left <- ifelse(grepl(".", names(by)), names(by), unname(by))
         matched_vars_right <- unname(by)
     }
-    
-    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
-    # on non-equivalent names
-    if (!is.null(attr(by, which = "names"))) {
-        by_reverse <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
-        attr(by_reverse, which = "names") <- c(
-            unname(by)[grepl(".", attr(by, which = "names"))],
-            unname(by)[grepl("^$", attr(by, which = "names"))]
-        )
+
+    # Creating "reverse" named vector of by (where left becomes right) in cases 
+    # where by matches on non-equivalent names
+    if (all.equal(matched_vars_left, matched_vars_right) != T) {
+        by_reverse <- matched_vars_left
+        names(by_reverse) <- matched_vars_right
     } else {
         by_reverse <- by
     }
     
-    # Doing full join
-    joined <- dplyr::full_join(x, y, by = by, copy = copy, suffix = suffix,  ...)
+    # Identifying type of merge that occured
+    left_type <- max(duplicated(x[, matched_vars_left]))
+    right_type <- max(duplicated(y[, matched_vars_right]))
     
-    # Calculating merge diagnoses 
+    if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
+    if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
+    
+    # Doing full join
+    joined <- dplyr::full_join(x, y, by = by, copy = copy, suffix = suffix, ...)
+    
+    # Calculating distribution of matches in newly joined data
     matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
     unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
     unmatched_y <- dplyr::tally(joined, is.na(.x_tracker) & !is.na(.y_tracker))
+    total <- dplyr::tally(joined)
+    
+    # Calculating percent of rows from each data set that matched
+    matched_ids <- dplyr::filter(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    matched_ids <- dplyr::select_at(matched_ids, matched_vars_left)
+    matched_ids_x <- dplyr::distinct(matched_ids)
+    matched_ids_y <- matched_ids_x
+    names(matched_ids_y) <- matched_vars_right
+    
+    matched_percent_x <- suppressMessages(dplyr::inner_join(x, matched_ids_x))
+    matched_percent_x <- dplyr::tally(matched_percent_x) / dplyr::tally(x) 
+    matched_percent_x <- 100 * round(matched_percent_x, 3)
+    matched_percent_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
+    matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(x) 
+    matched_percent_y <- 100 * round(matched_percent_y, 3)
     
     # Counting extra rows created
     anti_n_x <- dplyr::tally(
@@ -170,239 +196,321 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Print merge diagnoses
     message(
-        matched, " Rows are matches", "\n",
-        unmatched_x, " Rows are from left only", "\n",
-        unmatched_y, " Rows are from right only", "\n",
-        extra_rows_x, " Additional rows with a matched ID than original left", "\n",
-        extra_rows_y, " Additional rows with a matched ID than original right"
+        "\n",
+        "This was a ", left_type, " TO ", right_type, " join", "\n",
+        "\n",
+        "MATCH DISTRIBUTION IN JOINED DATA\n",
+        matched, " (", 100 * round(matched / total, 3), "%) Rows are matches", "\n",
+        unmatched_x, " (", 100 * round(unmatched_x / total, 3), "%) Rows are from left only", "\n",
+        unmatched_y, " (", 100 * round(unmatched_y / total, 3), "%) Rows are from right only", "\n",
+        "\n",
+        "MATCH RATES BASED ON ORIGINAL DATA\n",
+        matched_percent_x, "% Percent of rows from left matched" ,"\n",
+        matched_percent_y, "% Percent of rows from right matched", "\n",
+        "\n",
+        "ADDITIONAL ROWS\n",
+        extra_rows_x, " More rows with a matched ID than original left", "\n",
+        extra_rows_y, " More rows with a matched ID than original right"
     )
     
-    # Create .merge variable if specified
-    if (.merge) {
+    # Create .merge variable if specified. This is the only part of the code
+    # that requires rlang. Could not figure out how to implement := otherwise
+    if (!is.null(.merge)) {
+        merge_quo <- rlang::quo_name(.merge)
         joined <- dplyr::mutate(
             joined,
-            .merge = dplyr::case_when(
-                !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
-                is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
-                TRUE ~ "matched"
+            rlang::UQ(merge_quo) :=
+                dplyr::case_when(
+                    !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
+                    is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
+                    TRUE ~ "matched"
                 )
-            )
+        )
     }
     
-    # Create .extra variable if specified.
-    # In a full join, extra rows happen when not a 1-1 merge
-    if (.extra) {
-        x_count <- dplyr::select_at(x, matched_vars_left)
-        x_count <- dplyr::group_by_at(x_count, matched_vars_left)
-        x_count <- dplyr::summarize(x_count, .x_count = n())
-        x_count <- dplyr::filter(x_count, .x_count  > 1)
-        x_count <- dplyr::mutate(x_count, .x_count = T)
-        y_count <- dplyr::select(y, matched_vars_right)
-        names(y_count) <- matched_vars_left
-        y_count <- dplyr::group_by_at(y_count, matched_vars_left)
-        y_count <- dplyr::summarize(y_count, .y_count = n())
-        y_count <- dplyr::filter(y_count, .y_count  > 1)
-        y_count <- dplyr::mutate(y_count, .y_count = T)
-        joined <- dplyr::left_join(joined, x_count, by = matched_vars_left)
-        joined <- dplyr::left_join(joined, y_count, by = matched_vars_left)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                joined$.x_count & joined$.y_count ~ "extra_both",
-                joined$.x_count & is.na(joined$.y_count) ~ "extra_right",
-                is.na(joined$.x_count) & joined$.y_count ~ "extra_left",
-                TRUE ~ "not_extra"
-            )
-        )
-        joined <- dplyr::select(joined, -.x_count, -.y_count)
-    }
-
-    # Dropping tracker variables and returning data frame
+    # Dropping tracker variables
     joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
+  
+    # Create .extra variable if specified.
+    # In a full join, extra rows can happen when not a 1-1 merge
+    if (!is.null(.extra)) {
+        
+        extra_quo <- rlang::quo_name(.extra)
+        
+        # Isolate combinations of ID varaibles in left table with more than one
+        # row
+        x_count <- dplyr::group_by_at(x, matched_vars_left)
+        x_count <- dplyr::summarize(x_count, .x_tracker = n())
+        x_count <- dplyr::ungroup(x_count)
+        x_count <- dplyr::filter(x_count, .x_tracker > 1)
+        x_count <- dplyr::select(x_count, -.x_tracker)
+        names(x_count) <- matched_vars_right
+        y_extra <- suppressMessages(dplyr::semi_join(x_count, y))
+        y_extra <- dplyr::mutate(y_extra, .y_tracker = T)
+
+        y_count <- dplyr::group_by_at(y, matched_vars_right)
+        y_count <- dplyr::summarize(y_count, .y_tracker = n())
+        y_count <- dplyr::ungroup(y_count)
+        y_count <- dplyr::filter(y_count, .y_tracker > 1)
+        y_count <- dplyr::select(y_count, -.y_tracker)
+        names(y_count) <- matched_vars_left
+        x_extra <- suppressMessages(dplyr::semi_join(y_count, x))
+        x_extra <- dplyr::mutate(x_extra, .x_tracker = T)
+        
+        if(dplyr::tally(x_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, x_extra, by = matched_vars_left)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .x_tracker = NA)
+        }
+        
+        if(dplyr::tally(y_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, y_extra, by = matched_vars_right)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .y_tracker = NA)
+        }
+
+        joined <- dplyr::mutate(
+            joined,
+            rlang::UQ(extra_quo) :=
+                dplyr::case_when(
+                    joined$.x_tracker & joined$.y_tracker ~ "extra_on_both",
+                    joined$.x_tracker & is.na(joined$.y_tracker) ~ "extra_on_left",
+                    is.na(joined$.x_tracker) & joined$.y_tracker ~ "extra_on_right",
+                    TRUE ~ "not_extra"
+                )
+        )
+        joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
+    }
+    
+    # Regroup data and return
+    if (!is.null(x_group)) joined <- dplyr::group_by_at(joined, x_group)
     return(joined)
   
 }
 
 #' @rdname join_qc
 #' @export
-inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),  
-                          .extra = FALSE, ...){
-
-    # Checking to make sure used variable names are not already in use
-    if (".x_count" %in% names(x)){
-        message("Warning: variable .x_count in left data was dropped")
-    }
-    if (".y_count" %in% names(y)){
-        message("Warning: variable .y_count in right data was dropped")
-    }
-    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
-        stop("Variable .extra already exists; change name before proceeding")
-    }
+inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+                         .extra = NULL, ...){
     
-    # Extracting matched variables from left and from right
+    # Removing all group attributes from tables, but keeping group of x to 
+    # re-apply after merge
+    x_group <- attr(x, "vars")
+    x <- dplyr::ungroup(x)
+    y <- dplyr::ungroup(y)
+    
+    # Extracting matched variables from left and from right. First is if no
+    # by is specified, then if by is a character vector of matched variables,
+    # then if by is a named vector.
     if (is.null(by)) {
         matched_vars_left <- names(x)[names(x) %in% names(y)]
         matched_vars_right <- matched_vars_left
-    } else if (is.null(attr(by, which = "names"))) {
+    } else if (is.null(names(by))) {
         matched_vars_left <- by
         matched_vars_right <- by
     } else {
-        matched_vars_left <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
+        matched_vars_left <- ifelse(grepl(".", names(by)), names(by), unname(by))
         matched_vars_right <- unname(by)
     }
     
-    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
-    # on non-equivalent names
-    if (!is.null(attr(by, which = "names"))){
-        by_reverse <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
-        attr(by_reverse, which = "names") <- c(
-            unname(by)[grepl(".", attr(by, which = "names"))],
-            unname(by)[grepl("^$", attr(by, which = "names"))]
-        )
+    # Creating "reverse" named vector of by (where left becomes right) in cases 
+    # where by matches on non-equivalent names
+    if (all.equal(matched_vars_left, matched_vars_right) != T) {
+        by_reverse <- matched_vars_left
+        names(by_reverse) <- matched_vars_right
     } else {
         by_reverse <- by
     }
     
-    # Doing joins
-    joined <- dplyr::inner_join(x, y, by = by, suffix = suffix,  ...)
-    joined_left <- suppressMessages(dplyr::semi_join(x, y, by = by, suffix = suffix,  ...))
-    joined_right <- suppressMessages(dplyr::semi_join(y, x, by = by_reverse, suffix = suffix,  ...))
+    # Identifying type of merge that occured
+    left_type <- max(duplicated(x[, matched_vars_left]))
+    right_type <- max(duplicated(y[, matched_vars_right]))
     
-    # Calculating merge diagnoses
-    matched_x <- dplyr::tally(joined_left)
-    unmatched_x <- dplyr::tally(x) - dplyr::tally(joined_left)
-    matched_y <- dplyr::tally(joined_right)
-    unmatched_y <- dplyr::tally(y) - dplyr::tally(joined_right)
+    if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
+    if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
+    
+    # Doing inner join
+    joined <- dplyr::inner_join(x, y, by = by, copy = copy, suffix = suffix, ...)
     
     # Counting extra rows created
     anti_n_x <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
+            dplyr::anti_join(x, y, by = by, suffix = suffix, ...)
         )
     )
     anti_n_y <- dplyr::tally(
         suppressMessages(
-            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
+            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix, ...)
         )
     )
     extra_rows_x <- dplyr::tally(joined) - (dplyr::tally(x) - anti_n_x)
     extra_rows_y <- dplyr::tally(joined) - (dplyr::tally(y) - anti_n_y)
-
+    
     # Print merge diagnoses
     message(
-        matched_x, " Rows from left matched", "\n",
-        unmatched_x, " Rows dropped from left", "\n",
-        matched_y, " Rows from right matched", "\n",
-        unmatched_y, " Rows dropped from right", "\n",
-        extra_rows_x, " Additional rows with a matched ID than original left", "\n",
-        extra_rows_y, " Additional rows with a matched ID than original right"
+        "\n",
+        "This was a ", left_type, " TO ", right_type, " join", "\n",
+        "\n",
+        "Inner joins only kepp matching cases, so no match diagnosis", "\n",
+        "\n",
+        "ADDITIONAL ROWS\n",
+        extra_rows_x, " More rows with a matched ID than original left", "\n",
+        extra_rows_y, " More rows with a matched ID than original right"
     )
-    
+
     # Create .extra variable if specified.
-    # In an inner join, extra rows happen when not a 1-1 merge
-    if (.extra) {
-        x_count <- dplyr::select_at(x, matched_vars_left)
-        x_count <- dplyr::group_by_at(x_count, matched_vars_left)
-        x_count <- dplyr::summarize(x_count, .x_count = n())
-        x_count <- dplyr::filter(x_count, .x_count  > 1)
-        x_count <- dplyr::mutate(x_count, .x_count = T)
-        y_count <- dplyr::select(y, matched_vars_right)
+    # Extra rows can happen when not a 1-1 merge
+    if (!is.null(.extra)) {
+        
+        extra_quo <- rlang::quo_name(.extra)
+        
+        # Isolate combinations of ID varaibles in left table with more than one
+        # row
+        x_count <- dplyr::group_by_at(x, matched_vars_left)
+        x_count <- dplyr::summarize(x_count, .x_tracker = n())
+        x_count <- dplyr::ungroup(x_count)
+        x_count <- dplyr::filter(x_count, .x_tracker > 1)
+        x_count <- dplyr::select(x_count, -.x_tracker)
+        names(x_count) <- matched_vars_right
+        y_extra <- suppressMessages(dplyr::semi_join(x_count, y))
+        y_extra <- dplyr::mutate(y_extra, .y_tracker = T)
+        
+        y_count <- dplyr::group_by_at(y, matched_vars_right)
+        y_count <- dplyr::summarize(y_count, .y_tracker = n())
+        y_count <- dplyr::ungroup(y_count)
+        y_count <- dplyr::filter(y_count, .y_tracker > 1)
+        y_count <- dplyr::select(y_count, -.y_tracker)
         names(y_count) <- matched_vars_left
-        y_count <- dplyr::group_by_at(y_count, matched_vars_left)
-        y_count <- dplyr::summarize(y_count, .y_count = n())
-        y_count <- dplyr::filter(y_count, .y_count  > 1)
-        y_count <- dplyr::mutate(y_count, .y_count = T)
-        joined <- dplyr::left_join(joined, x_count, by = matched_vars_left)
-        joined <- dplyr::left_join(joined, y_count, by = matched_vars_left)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                joined$.x_count & joined$.y_count ~ "extra_both",
-                joined$.x_count & is.na(joined$.y_count) ~ "extra_right",
-                is.na(joined$.x_count) & joined$.y_count ~ "extra_left",
-                TRUE ~ "not_extra"
+        x_extra <- suppressMessages(dplyr::semi_join(y_count, x))
+        x_extra <- dplyr::mutate(x_extra, .x_tracker = T)
+        
+        if(dplyr::tally(x_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, x_extra, by = matched_vars_left)
             )
+        } else {
+            joined <- dplyr::mutate(joined, .x_tracker = NA)
+        }
+        
+        if(dplyr::tally(y_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, y_extra, by = matched_vars_right)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .y_tracker = NA)
+        }
+        
+        joined <- dplyr::mutate(
+            joined,
+            rlang::UQ(extra_quo) :=
+                dplyr::case_when(
+                    joined$.x_tracker & joined$.y_tracker ~ "extra_on_both",
+                    joined$.x_tracker & is.na(joined$.y_tracker) ~ "extra_on_left",
+                    is.na(joined$.x_tracker) & joined$.y_tracker ~ "extra_on_right",
+                    TRUE ~ "not_extra"
+                )
         )
-        joined <- dplyr::select(joined, -.x_count, -.y_count)
+        joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
     }
     
-    # Returning data frame
+    # Regroup data and return
+    if (!is.null(x_group)) joined <- dplyr::group_by_at(joined, x_group)
     return(joined)
     
 }
 
 #' @rdname join_qc
 #' @export
-left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),  
-                         .merge = FALSE, .extra = FALSE, ...){
+left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+                         .merge = NULL, .extra = NULL, ...){
     
-    # Checking to make sure used variable names are not already in use
-    if (".x_tracker" %in% names(x)){
-        message("Warning: variable .x_tracker in left data was dropped")
-    }
-    if (".y_tracker" %in% names(y)){
-        message("Warning: variable .y_tracker in right data was dropped")
-    }
-    if (".x_count" %in% names(x)){
-        message("Warning: variable .x_count in left data was dropped")
-    }
-    if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
-        stop("Variable .merge already exists; change name before proceeding")
-    }
-    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
-        stop("Variable .extra already exists; change name before proceeding")
-    }
-  
-    # Adding simple merge tracker variables to data frames
-    x <- dplyr::mutate(x, .x_tracker = 1)
-    y <- dplyr::mutate(y, .y_tracker = 1)
+    # Removing all group attributes from tables, but keeping group of x to 
+    # re-apply after merge
+    x_group <- attr(x, "vars")
+    x <- dplyr::ungroup(x)
+    y <- dplyr::ungroup(y)
     
-    # Extracting matched variables from left and from right
+    # Checking to make sure variable names used in function are not already in
+    # use, and supply warning if so.
+    if (".x_tracker" %in% names(x)) {
+        message("Warning: variable .x_tracker in left table was dropped")
+    }
+    if (".y_tracker" %in% names(y)) {
+        message("Warning: variable .y_tracker in right table was dropped")
+    }
+    
+    if (!is.null(.merge)) {
+        if (.merge %in% names(x) | .merge %in% names(y)) {
+            stop(
+                paste0(
+                    "Column '", 
+                    .merge, 
+                    "' already exists; change .merge name before proceeding"
+                )
+            )
+        }
+    }
+    
+    # Adding simple merge tracker variables to tables
+    x <- dplyr::mutate(x, .x_tracker = T)
+    y <- dplyr::mutate(y, .y_tracker = T)
+    
+    # Extracting matched variables from left and from right. First is if no
+    # by is specified, then if by is a character vector of matched variables,
+    # then if by is a named vector.
     if (is.null(by)) {
         matched_vars_left <- names(x)[names(x) %in% names(y)]
-    } else if (is.null(attr(by, which = "names"))) {
+        matched_vars_right <- matched_vars_left
+    } else if (is.null(names(by))) {
         matched_vars_left <- by
+        matched_vars_right <- by
     } else {
-        matched_vars_left <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
+        matched_vars_left <- ifelse(grepl(".", names(by)), names(by), unname(by))
         matched_vars_right <- unname(by)
     }
     
-    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
-    # on non-equivalent names
-    if (!is.null(attr(by, which = "names"))) {
-        by_reverse <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
-        attr(by_reverse, which = "names") <- c(
-            unname(by)[grepl(".", attr(by, which = "names"))],
-            unname(by)[grepl("^$", attr(by, which = "names"))]
-        )
+    # Creating "reverse" named vector of by (where left becomes right) in cases 
+    # where by matches on non-equivalent names
+    if (all.equal(matched_vars_left, matched_vars_right) != T) {
+        by_reverse <- matched_vars_left
+        names(by_reverse) <- matched_vars_right
     } else {
         by_reverse <- by
     }
     
-    # Doing join
-    joined <- dplyr::left_join(x, y, by = by, suffix = suffix,  ...)
+    # Identifying type of merge that occured
+    left_type <- max(duplicated(x[, matched_vars_left]))
+    right_type <- max(duplicated(y[, matched_vars_right]))
     
-    # Calculating merge diagnoses 
-    matched <- dplyr::tally(joined, !is.na(.y_tracker))
-    unmatched_x <- dplyr::tally(joined, is.na(.y_tracker))
-    unmatched_y <- dplyr::tally(
-        suppressMessages(
-            dplyr::anti_join(y, x, by = by_reverse, suffix = suffix,  ...)
-        )
-    )
-
+    if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
+    if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
+    
+    # Doing left join
+    joined <- dplyr::left_join(x, y, by = by, copy = copy, suffix = suffix, ...)
+    
+    # Calculating distribution of matches in newly joined data
+    matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
+    total <- dplyr::tally(joined)
+    
+    # Calculating percent of rows from each data set that matched
+    matched_ids <- dplyr::filter(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    matched_ids <- dplyr::select_at(matched_ids, matched_vars_left)
+    matched_ids_x <- dplyr::distinct(matched_ids)
+    matched_ids_y <- matched_ids_x
+    names(matched_ids_y) <- matched_vars_right
+    
+    matched_percent_x <- suppressMessages(dplyr::inner_join(x, matched_ids_x))
+    matched_percent_x <- dplyr::tally(matched_percent_x) / dplyr::tally(x) 
+    matched_percent_x <- 100 * round(matched_percent_x, 3)
+    matched_percent_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
+    matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(x) 
+    matched_percent_y <- 100 * round(matched_percent_y, 3)
+    
     # Counting extra rows created
     anti_n_x <- dplyr::tally(
         suppressMessages(
@@ -413,112 +521,187 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 
     # Print merge diagnoses
     message(
-        matched, " Rows are matches", "\n",
-        unmatched_x, " Rows are from left only", "\n",
-        unmatched_y, " Rows were dropped from right", "\n",
-        extra_rows_x, " Additional rows with a matched ID than original left"
+        "\n",
+        "This was a ", left_type, " TO ", right_type, " join", "\n",
+        "\n",
+        "MATCH DISTRIBUTION IN JOINED DATA\n",
+        matched, " (", 100 * round(matched / total, 3), "%) Rows are matches", "\n",
+        unmatched_x, " (", 100 * round(unmatched_x / total, 3), "%) Rows are from left only", "\n",
+        "\n",
+        "MATCH RATES BASED ON ORIGINAL DATA\n",
+        matched_percent_x, "% Percent of rows from left matched" ,"\n",
+        matched_percent_y, "% Percent of rows from right matched", "\n",
+        "\n",
+        "ADDITIONAL ROWS\n",
+        extra_rows_x, " More rows with a matched ID than original left"
     )
     
-    # Create .merge variable if specified
-    if (.merge) {
+    # Create .merge variable if specified. This is the only part of the code
+    # that requires rlang. Could not figure out how to implement := otherwise
+    if (!is.null(.merge)) {
+        merge_quo <- rlang::quo_name(.merge)
         joined <- dplyr::mutate(
             joined,
-            .merge = ifelse(!is.na(.x_tracker) & is.na(.y_tracker), "left_only", "matched")
+            rlang::UQ(merge_quo) :=
+                dplyr::case_when(
+                    !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
+                    is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
+                    TRUE ~ "matched"
+                )
         )
     }
     
-    # Create .extra variable if specified.
-    # In a left join, extra rows happen when not a more than 1 distinct right combo
-    if (.extra) {
-        y_count <- dplyr::select(y, matched_vars_right)
-        names(y_count) <- matched_vars_left
-        y_count <- dplyr::group_by_at(y_count, matched_vars_left)
-        y_count <- dplyr::summarize(y_count, .y_count = n())
-        y_count <- dplyr::filter(y_count, .y_count  > 1)
-        y_count <- dplyr::mutate(y_count, .y_count = T)
-        joined <- dplyr::left_join(joined, y_count, by = matched_vars_left)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                joined$.y_count ~ "extra_left",
-                TRUE ~ "not_extra"
-            )
-        )
-        joined <- dplyr::select(joined, -.y_count)
-    }
-    # Dropping tracker variables and returning data frame
+    # Dropping tracker variables
     joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
+    
+    # Create .extra variable if specified.
+    # In a full join, extra rows can happen when not a 1-1 merge
+    if (!is.null(.extra)) {
+        
+        extra_quo <- rlang::quo_name(.extra)
+        
+        # Isolate combinations of ID varaibles in left table with more than one
+        # row
+        x_count <- dplyr::group_by_at(x, matched_vars_left)
+        x_count <- dplyr::summarize(x_count, .x_tracker = n())
+        x_count <- dplyr::ungroup(x_count)
+        x_count <- dplyr::filter(x_count, .x_tracker > 1)
+        x_count <- dplyr::select(x_count, -.x_tracker)
+        names(x_count) <- matched_vars_right
+        y_extra <- suppressMessages(dplyr::semi_join(x_count, y))
+        y_extra <- dplyr::mutate(y_extra, .y_tracker = T)
+        
+        y_count <- dplyr::group_by_at(y, matched_vars_right)
+        y_count <- dplyr::summarize(y_count, .y_tracker = n())
+        y_count <- dplyr::ungroup(y_count)
+        y_count <- dplyr::filter(y_count, .y_tracker > 1)
+        y_count <- dplyr::select(y_count, -.y_tracker)
+        names(y_count) <- matched_vars_left
+        x_extra <- suppressMessages(dplyr::semi_join(y_count, x))
+        x_extra <- dplyr::mutate(x_extra, .x_tracker = T)
+        
+        if(dplyr::tally(x_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, x_extra, by = matched_vars_left)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .x_tracker = NA)
+        }
+        
+        if(dplyr::tally(y_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, y_extra, by = matched_vars_right)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .y_tracker = NA)
+        }
+        
+        joined <- dplyr::mutate(
+            joined,
+            rlang::UQ(extra_quo) :=
+                dplyr::case_when(
+                    joined$.x_tracker & joined$.y_tracker ~ "extra_on_both",
+                    joined$.x_tracker & is.na(joined$.y_tracker) ~ "extra_on_left",
+                    is.na(joined$.x_tracker) & joined$.y_tracker ~ "extra_on_right",
+                    TRUE ~ "not_extra"
+                )
+        )
+        joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
+    }
+    
+    # Regroup data and return
+    if (!is.null(x_group)) joined <- dplyr::group_by_at(joined, x_group)
     return(joined)
     
 }
 
 #' @rdname join_qc
 #' @export
-right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"), 
-                          .merge = FALSE, .extra = FALSE, ...){
+right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
+                         .merge = NULL, .extra = NULL, ...){
     
-    # Checking to make sure used variable names are not already in use
-    if (".x_tracker" %in% names(x)){
-        message("Warning: variable .x_tracker in left data was dropped")
-    }
-    if (".y_tracker" %in% names(y)){
-        message("Warning: variable .y_tracker in right data was dropped")
-    }
-    if (".y_count" %in% names(y)){
-        message("Warning: variable .y_count in right data was dropped")
-    }
-    if (.merge & (".merge" %in% names(x) | ".merge" %in% names(y))){
-        stop("Variable .merge already exists; change name before proceeding")
-    }
-    if (.extra & (".extra" %in% names(x) | ".extra" %in% names(y))){
-        stop("Variable .extra already exists; change name before proceeding")
-    }
-  
-    # Adding simple merge tracker variables to data frames
-    x <- dplyr::mutate(x, .x_tracker = 1)
-    y <- dplyr::mutate(y, .y_tracker = 1)
+    # Removing all group attributes from tables, but keeping group of x to 
+    # re-apply after merge
+    x_group <- attr(x, "vars")
+    x <- dplyr::ungroup(x)
+    y <- dplyr::ungroup(y)
     
-    # Extracting matched variables from left and from right
+    # Checking to make sure variable names used in function are not already in
+    # use, and supply warning if so.
+    if (".x_tracker" %in% names(x)) {
+        message("Warning: variable .x_tracker in left table was dropped")
+    }
+    if (".y_tracker" %in% names(y)) {
+        message("Warning: variable .y_tracker in right table was dropped")
+    }
+    
+    if (!is.null(.merge)) {
+        if (.merge %in% names(x) | .merge %in% names(y)) {
+            stop(
+                paste0(
+                    "Column '", 
+                    .merge, 
+                    "' already exists; change .merge name before proceeding"
+                )
+            )
+        }
+    }
+    
+    # Adding simple merge tracker variables to tables
+    x <- dplyr::mutate(x, .x_tracker = T)
+    y <- dplyr::mutate(y, .y_tracker = T)
+    
+    # Extracting matched variables from left and from right. First is if no
+    # by is specified, then if by is a character vector of matched variables,
+    # then if by is a named vector.
     if (is.null(by)) {
-        matched_vars_right <- names(y)[names(y) %in% names(x)]
-        matched_vars_left <- matched_vars_right
-    } else if (is.null(attr(by, which = "names"))) {
-        matched_vars_right <- by
+        matched_vars_left <- names(x)[names(x) %in% names(y)]
+        matched_vars_right <- matched_vars_left
+    } else if (is.null(names(by))) {
         matched_vars_left <- by
+        matched_vars_right <- by
     } else {
+        matched_vars_left <- ifelse(grepl(".", names(by)), names(by), unname(by))
         matched_vars_right <- unname(by)
-        matched_vars_left <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
     }
     
-    # Creating "reverse" named vector of by (where left becomes right) in cases where by matches
-    # on non-equivalent names
-    if (!is.null(attr(by, which = "names"))) {
-        by_reverse <- c(
-            attr(by, which = "names")[grepl(".", attr(by, which = "names"))],
-            by[grepl("^$", attr(by, which = "names"))]
-        )
-        attr(by_reverse, which = "names") <- c(
-            unname(by)[grepl(".", attr(by, which = "names"))],
-            unname(by)[grepl("^$", attr(by, which = "names"))]
-        )
+    # Creating "reverse" named vector of by (where left becomes right) in cases 
+    # where by matches on non-equivalent names
+    if (all.equal(matched_vars_left, matched_vars_right) != T) {
+        by_reverse <- matched_vars_left
+        names(by_reverse) <- matched_vars_right
     } else {
         by_reverse <- by
     }
     
-        # Doing join
-    joined <- dplyr::right_join(x, y, by = by, suffix = suffix,  ...)
+    # Identifying type of merge that occured
+    left_type <- max(duplicated(x[, matched_vars_left]))
+    right_type <- max(duplicated(y[, matched_vars_right]))
     
-    # Calculating merge diagnoses 
-    matched <- dplyr::tally(joined, !is.na(.x_tracker))
-    unmatched_y <- dplyr::tally(joined, is.na(.x_tracker))
-    unmatched_x <- dplyr::tally(
-        suppressMessages(
-            dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
-        )
-    )
+    if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
+    if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
+    
+    # Doing right join
+    joined <- dplyr::right_join(x, y, by = by, copy = copy, suffix = suffix, ...)
+    
+    # Calculating distribution of matches in newly joined data
+    matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    unmatched_y <- dplyr::tally(joined, is.na(.x_tracker) & !is.na(.y_tracker))
+    total <- dplyr::tally(joined)
+    
+    # Calculating percent of rows from each data set that matched
+    matched_ids <- dplyr::filter(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
+    matched_ids <- dplyr::select_at(matched_ids, matched_vars_left)
+    matched_ids_x <- dplyr::distinct(matched_ids)
+    matched_ids_y <- matched_ids_x
+    names(matched_ids_y) <- matched_vars_right
+    
+    matched_percent_x <- suppressMessages(dplyr::inner_join(x, matched_ids_x))
+    matched_percent_x <- dplyr::tally(matched_percent_x) / dplyr::tally(x) 
+    matched_percent_x <- 100 * round(matched_percent_x, 3)
+    matched_percent_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
+    matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(x) 
+    matched_percent_y <- 100 * round(matched_percent_y, 3)
     
     # Counting extra rows created
     anti_n_y <- dplyr::tally(
@@ -530,41 +713,96 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Print merge diagnoses
     message(
-        matched, " Rows are matches", "\n",
-        unmatched_y, " Rows are from right only", "\n",
-        unmatched_x, " Rows were dropped from left", "\n",
-        extra_rows_y, " Additional rows with a matched ID than original right"
+        "\n",
+        "This was a ", left_type, " TO ", right_type, " join", "\n",
+        "\n",
+        "MATCH DISTRIBUTION IN JOINED DATA\n",
+        matched, " (", 100 * round(matched / total, 3), "%) Rows are matches", "\n",
+        unmatched_y, " (", 100 * round(unmatched_y / total, 3), "%) Rows are from right only", "\n",
+        "\n",
+        "MATCH RATES BASED ON ORIGINAL DATA\n",
+        matched_percent_x, "% Percent of rows from left matched" ,"\n",
+        matched_percent_y, "% Percent of rows from right matched", "\n",
+        "\n",
+        "ADDITIONAL ROWS\n",
+        extra_rows_y, " More rows with a matched ID than original right"
     )
     
-    # Create .merge variable if specified 
-    if(.merge){
+    # Create .merge variable if specified. This is the only part of the code
+    # that requires rlang. Could not figure out how to implement := otherwise
+    if (!is.null(.merge)) {
+        merge_quo <- rlang::quo_name(.merge)
         joined <- dplyr::mutate(
             joined,
-            .merge = ifelse(is.na(.x_tracker) & !is.na(.y_tracker), "right_only", "matched")
+            rlang::UQ(merge_quo) :=
+                dplyr::case_when(
+                    !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
+                    is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
+                    TRUE ~ "matched"
+                )
         )
     }
+    
+    # Dropping tracker variables
+    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
     
     # Create .extra variable if specified.
-    # In a right join, extra rows happen when multiple combos in left
-    if (.extra) {
-        x_count <- dplyr::select_at(x, matched_vars_left)
-        x_count <- dplyr::group_by_at(x_count, matched_vars_left)
-        x_count <- dplyr::summarize(x_count, .x_count = n())
-        x_count <- dplyr::filter(x_count, .x_count  > 1)
-        x_count <- dplyr::mutate(x_count, .x_count = T)
-        joined <- dplyr::left_join(joined, x_count, by = matched_vars_left)
-        joined <- dplyr::mutate(
-            joined, 
-            .extra = dplyr::case_when(
-                joined$.x_count ~ "extra_right",
-                TRUE ~ "not_extra"
+    # In a full join, extra rows can happen when not a 1-1 merge
+    if (!is.null(.extra)) {
+        
+        extra_quo <- rlang::quo_name(.extra)
+        
+        # Isolate combinations of ID varaibles in left table with more than one
+        # row
+        x_count <- dplyr::group_by_at(x, matched_vars_left)
+        x_count <- dplyr::summarize(x_count, .x_tracker = n())
+        x_count <- dplyr::ungroup(x_count)
+        x_count <- dplyr::filter(x_count, .x_tracker > 1)
+        x_count <- dplyr::select(x_count, -.x_tracker)
+        names(x_count) <- matched_vars_right
+        y_extra <- suppressMessages(dplyr::semi_join(x_count, y))
+        y_extra <- dplyr::mutate(y_extra, .y_tracker = T)
+        
+        y_count <- dplyr::group_by_at(y, matched_vars_right)
+        y_count <- dplyr::summarize(y_count, .y_tracker = n())
+        y_count <- dplyr::ungroup(y_count)
+        y_count <- dplyr::filter(y_count, .y_tracker > 1)
+        y_count <- dplyr::select(y_count, -.y_tracker)
+        names(y_count) <- matched_vars_left
+        x_extra <- suppressMessages(dplyr::semi_join(y_count, x))
+        x_extra <- dplyr::mutate(x_extra, .x_tracker = T)
+        
+        if(dplyr::tally(x_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, x_extra, by = matched_vars_left)
             )
+        } else {
+            joined <- dplyr::mutate(joined, .x_tracker = NA)
+        }
+        
+        if(dplyr::tally(y_extra) > 0) {
+            joined <- suppressMessages(
+                dplyr::left_join(joined, y_extra, by = matched_vars_right)
+            )
+        } else {
+            joined <- dplyr::mutate(joined, .y_tracker = NA)
+        }
+        
+        joined <- dplyr::mutate(
+            joined,
+            rlang::UQ(extra_quo) :=
+                dplyr::case_when(
+                    joined$.x_tracker & joined$.y_tracker ~ "extra_on_both",
+                    joined$.x_tracker & is.na(joined$.y_tracker) ~ "extra_on_left",
+                    is.na(joined$.x_tracker) & joined$.y_tracker ~ "extra_on_right",
+                    TRUE ~ "not_extra"
+                )
         )
-        joined <- dplyr::select(joined, -.x_count)
+        joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
     }
     
-    # Dropping tracker variables and returning data frame
-    joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
+    # Regroup data and return
+    if (!is.null(x_group)) joined <- dplyr::group_by_at(joined, x_group)
     return(joined)
     
 }
@@ -577,10 +815,17 @@ anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     anti_joined <- dplyr::anti_join(x, y, by = by, suffix = suffix,  ...)
 
     # Calculating merge diagnoses 
-    matched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
+    unmatched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
 
     # Print merge diagnoses
-    message(matched_x, " Rows were dropped from left")
+    message(
+        "\n",
+        "Anti joins only keep matching cases, so no match diagnosis", "\n",
+        "Anti joins never create extra rows, so now additional row diagnosis", "\n",
+        "\n",
+        "DROPPED ROWS", "\n",
+        unmatched_x, " Rows were dropped from left"
+    )
     
     # Returning data frame
     return(anti_joined)
@@ -598,7 +843,14 @@ semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     unmatched_x <- dplyr::tally(x) - dplyr::tally(joined)
     
     # Print merge diagnoses
-    message(unmatched_x, " Rows were dropped from left")
+    message(
+        "\n",
+        "Semi joins only keep matching cases, so no match diagnosis", "\n",
+        "Semi joins never create extra rows, so now additional row diagnosis", "\n",
+        "\n",
+        "DROPPED ROWS", "\n",
+        unmatched_x, " Rows were dropped from left"
+    )
     
     # Rreturning data frame
     return(joined)
