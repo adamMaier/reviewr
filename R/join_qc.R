@@ -7,34 +7,47 @@
 #' Each _qc version of the join functions is identical to its dplyr equivalent
 #' except that it automatically prints the number of rows that were matched, the
 #' number of rows that were not matched, and the number of additional rows 
-#' compared to the initial data frame(s) when doing a \code{left} or 
-#' \code{right} join, for example when there is more than one match on the
-#' \code{by} identifier(s). There are also options to create new variables 
-#' identifying and classifying rows based on how/if they matched.
-#' 
+#' compared to the initial data frame(s) - for example when there is more than
+#' one match on the \code{by} identifier(s). There are also options to create
+#' new variables identifying and classifying rows based on how/if they matched.
+#'
+#' @section Join Descriptions: 
+#'   All joins except \code{anti_join} and \code{semi_join} are classified as
+#'   one to one, one to many, many to one, or many to many. These definitions
+#'   describe the extent to which there are duplicated rows of unique 
+#'   combinations of the \code{by} variable(s). In one to one merges, there is
+#'   only one unique row of identifiers in each data set. Extra rows are never 
+#'   created in one to one joins one to many and many to one joins occur when
+#'   one of the data sets has a duplicated id row. One to many implies the right 
+#'   data has the duplicated id; many to one implies the left data has the 
+#'   duplicated id. Additional rows may be created in these types of joins. Many
+#'   to many joins imply that both data sets have duplicated rows on the id
+#'   variable(s). Additional rows may be created in this types of join. The
+#'   join description is printed when performing any join except 
+#'   \code{anti_join} and \code{semi_join}.
+#'   
 #' @section Optional New Variables:
 #'   For \code{full_join_qc}, \code{left_join_qc}, and \code{right_join_qc}, 
-#'   there is an added option of creating a new variable called \code{.merge} 
-#'   that indicates whether the row in the joined data was from the 
-#'   \code{"left_only"}, \code{"right_only"} or \code{"matched"}. This variable 
-#'   can be helpful when diagnosing why the join did or did not match as 
-#'   desired. 
+#'   there is an added option of creating a new variable that indicates whether 
+#'   the row in the joined data was from the \code{"left_only"}, 
+#'   \code{"right_only"} or \code{"matched"}. This variable can be helpful when
+#'   diagnosing why the join did or did not match as desired. Whatever character 
+#'   value that is supplied to \code{.merge} becomes the name of this new
+#'   variable.
 #' 
 #'   \code{left_join_qc}, and \code{right_join_qc} also have the option of 
-#'   creating a new variable called \code{.extra} which indicates whether the 
-#'   row in the  joined data is an additional row with the given combination of
-#'   \code{by}. For example, if there were only 2 rows with an ID equal to "A" 
-#'   in the original left data set but 3 rows with this ID in the right data 
-#'   set, then the left joined data will have more rows with this ID than the 
-#'   original left. \code{.extra} is a logical that when \code{.extra = TRUE}
-#'   flags a row on \code{by} that has additional rows than the original left 
-#'   or right data frame depending on whether \code{left_join_qc} or
-#'    \code{right_join_qc} was called.
+#'   creating a new variable indicating whether the row in the  joined data is 
+#'   an additional row with the given combination of \code{by}. For example, if
+#'   there were only 2 rows with an ID equal to "A" in the original left data 
+#'   but 3 rows with this ID in the right data set, then the left joined data 
+#'   will have more rows with this ID than the original left. \code{.extra} is 
+#'   a chracter value that when supplied becomes the name of this new variable
+#'   flagging a row  that has additional rows than the original left 
+#'   or right data frame.
 #' 
 #' @section Grouping:
-#'   Groups in the data frames are ignored for the purpose of joining, and the
-#'   result does not preserve the grouping of \code{x}. This is the only
-#'   difference with the dplyr joins, which do preserve the grouping of \code{x}.
+#'   Groups in the data frames are ignored for the purpose of joining, but the 
+#'   result preserves the grouping of \code{x}.
 #' 
 #' @param x,y tbls to join
 #' 
@@ -62,22 +75,30 @@
 #'   occur if a variable is already named the value specified in\code{.merge}, 
 #'   so make sure to choose different names for different joins.
 #'   
-#' @param .extra a character value used to name a new logical variablee, which 
-#'   will be \code{TRUE} for any row of the new joined data that represents a 
-#'   combination of the \code{by} identifiers that has more rows than the 
-#'   original left and/or right data frames. If \code{NULL}, the default, no new
-#'   extra row tracking variable will be created. An error will occur if a 
-#'   variable is already named the value specified in\code{.extra}, so make sure
-#'   to choose different names for different joins. This is only an option for
-#'   \code{left_join_qc}, and \code{right_join_qc}.
+#' @param .extra a character value used to name a new character variable, which 
+#'   identifies any row of the new joined data that represents a combination of
+#'   the \code{by} identifiers that has more rows than the original left and/or 
+#'   right data frames. If \code{NULL}, the default, no new extra row tracking 
+#'   variable will be created. An error will occur if a variable is already 
+#'   named the value specified in\code{.extra}, so make sure to choose different
+#'    names for different joins.
 #' 
 #' @param ... other parameters passed onto methods.
 #' 
 #' @seealso \code{\link[dplyr]{join}}
 #' 
 #' @examples
-#' data_A <- data.frame(id = 1:10, var_A = 11:20)
-#' data_B <- data.frame(id = c(5, 5, 5, 5, 6, 7, 7, 9, 10, 11), id_A = c(1:10), var_B = 21:30)
+#' data_A <- 
+#'   data.frame(
+#'     id = 1:10, 
+#'     var_A = 11:20
+#'    )
+#' data_B <- 
+#'   data.frame(
+#'     id = c(5, 5, 5, 5, 6, 7, 7, 9, 10, 11), 
+#'     id_A = c(1:10), 
+#'     var_B = 21:30
+#'   )
 #' 
 #' # Full join with new .merge variable
 #' full_join_qc(data_A, data_B, .merge = "merge_ab")
