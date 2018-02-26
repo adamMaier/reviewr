@@ -54,7 +54,7 @@ Because `reviewr` was built on the premise of toggling back and forth between `d
 
 ### Working with grouped data
 
-If you simply add `_qc_` to the end of `dplyr` code, `reviewr`could be helpful. But it also includes an option to learn more about what happened to each group in your data if you have a grouped structure. For example, how many rows in each group were dropped when filtering? Which groups, if any, had NA values created when doing a `group_by()` and `summarize()` combination, and on which variables? Many of the `reviewr` functions have an option to print this information:
+If you simply add `_qc` to the end of `dplyr` code, `reviewr` could be helpful. But it also includes an option to learn more about what happened to each group in your data if you have a grouped structure. For example, how many rows in each group were dropped when filtering? Which groups, if any, had NA values created when doing a `group_by()` and `summarize()` combination, and on which variables? Many of the `reviewr` functions have an option to print this information:
 
 ```{r, echo = TRUE}
 reviewr_output <- mtcars %>% 
