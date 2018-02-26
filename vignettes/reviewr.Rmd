@@ -122,7 +122,7 @@ output <- mtcars %>%
 head(output)
 ```
 
-With grouped data and with `.group_check = T`, you can find out the number of missing rows per group and on which variables. With this option, a table will be printed with a columns called "var_name" and n_missing, indicating how many missing values there are for each newly mutated variable for each group. Note that this could print a big table if you have a lot of groups.
+With grouped data and with `.group_check = T`, you can find out the number of missing rows per group and on which variables. With this option, a table will be printed with a columns called "var_name" and "n_missing", indicating how many missing values there are for each newly mutated variable for each group. Note that this could print a big table if you have a lot of groups.
 
 ```{r, echo = TRUE}
 result_normal <- mtcars %>% 
@@ -149,15 +149,13 @@ Whether or not `group_check = T`, the returned mutated data is identical. `.grou
 all.equal(result_normal, result_withOption)
 ```
 
-`reviewr` has  `_qc` versions of the scoped filter functions, too.
+`reviewr` has  `_qc` versions of the scoped mutate functions, too.
 
 ```{r, echo = TRUE}
 output <- mutate_all_qc(mtcars, funs(inv = 1 / .))
 ```
 
-All of the scoped filter functions have an option for `.group_check`.
-
-`reviewr` has `_qc` versions of `transmute()` and all of its scoped variants, as well.
+All of the scoped mutate functions have an option for `.group_check`. `reviewr` has `_qc` versions of `transmute()` and all of its scoped variants, as well.
 
 
 ### Summarizing
@@ -180,7 +178,7 @@ result <- mtcars %>%
 
 Whether or not `group_check = T`, the returned summarized data is identical. `.group_check = T` simply prints more information. The default is `.group_check = F`.
 
-`reviewr` has  `_qc` versions of the scoped filter functions, too.
+`reviewr` has  `_qc` versions of the scoped summarize functions, too.
 
 ```{r, echo = TRUE}
 result <- mtcars %>%
@@ -188,7 +186,7 @@ result <- mtcars %>%
   summarize_at_qc(vars(mpg, hp, vs), funs(inv = mean(1 / .)))
 ```
 
-All of the scoped filter functions have an option for `.group_check`.
+All of the scoped summarize functions have an option for `.group_check`.
 
 `reviewr` has  `_qc` versions of `summarize()` and `summarise()` and all of their scoped variants. But this is America, so use a "z"!
 
@@ -246,7 +244,7 @@ joined_data <- full_join_qc(data_A, data_B, .merge = "name_me")
 print.data.frame(joined_data)
 ```
 
-Set `.extra` equal to a name you want to use for a new variable that will indicate, for each row, whether it was a a combination of IDs that was duplicated from the left data, from the right data, or from both. These only occur in one to many, many to one, or many to many joins. In the example below, rows with the `id` of 5 from the left data was duplicated multiple times because 5 appeared on multiple rows in the right data. `,extra` flags these rows as "extra_on_left". The same happened with rows that had an `id` of 7.
+Set `.extra` equal to a name you want to use for a new variable that will indicate, for each row, whether it was a a combination of IDs that was duplicated from the left data, from the right data, or from both. These only occur in one to many, many to one, or many to many joins. In the example below, rows with the `id` of 5 from the left data was duplicated multiple times because 5 appeared on multiple rows in the right data. `.extra` flags these rows as "extra_on_left". The same happened with rows that had an `id` of 7.
 
 ```{r, echo = TRUE}
 joined_data <- full_join_qc(data_A, data_B, .extra = "name_me_too")
