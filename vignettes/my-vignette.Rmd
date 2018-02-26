@@ -4,7 +4,7 @@ author: "Adam Maier, TNTP"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Quality Control for dplyr}
+  %\VignetteIndexEntry{reviewr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
