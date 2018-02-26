@@ -11,51 +11,58 @@
 \title{Report number of matched and/or extra cases when performing a dplyr join}
 \usage{
 full_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = FALSE, .extra = FALSE, ...)
+  .merge = NULL, .extra = NULL, ...)
 
 inner_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .extra = FALSE, ...)
+  .merge = NULL, .extra = NULL, ...)
 
 left_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = FALSE, .extra = FALSE, ...)
+  .merge = NULL, .extra = NULL, ...)
 
 right_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = FALSE, .extra = FALSE, ...)
+  .merge = NULL, .extra = NULL, ...)
 
 anti_join_qc(x, y, by = NULL, copy = FALSE, ...)
 
 semi_join_qc(x, y, by = NULL, copy = FALSE, ...)
 }
 \arguments{
-\item{x, y}{tbls to join}
+\item{x}{tbls to join}
 
-\item{by}{a character vector of variables to join by. If \code{NULL}, the default,
-  \code{*_join} will do a natural join, using all variables with common names
-  across the two tables. A message lists the variables so that you can check
-  they're right (to suppress the message, simply explicitly list the
-   variables that you want to join).
+\item{y}{tbls to join}
 
-  To join by different variables on x and y use a named vector.For example, 
-  \code{by = c("a" = "b")} will match \code{x.a} to \code{y.b}.}
+\item{by}{a character vector of variables to join by.  If \code{NULL}, the
+default, \code{*_join()} will do a natural join, using all variables with
+common names across the two tables. A message lists the variables so
+that you can check they're right (to suppress the message, simply
+explicitly list the variables that you want to join).
+
+To join by different variables on x and y use a named vector.
+For example, \code{by = c("a" = "b")} will match \code{x.a} to
+\code{y.b}.}
 
 \item{copy}{If \code{x} and \code{y} are not from the same data source,
 and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
 same src as \code{x}.  This allows you to join tables across srcs, but
-it is a potentially expensive operation so you must opt into it}
+it is a potentially expensive operation so you must opt into it.}
 
-\item{.merge}{A logical value indicating whether a new character variable, 
-\code{.merge}, should be created, which tracks the source of each row of
-the new, joined data. The default is \code{FALSE}. An error will occur if a 
-variable is already named \code{.merge}, so make sure to rename or drop 
-this variable after each join when doing successive joins.}
+\item{suffix}{If there are non-joined duplicate variables in \code{x} and
+\code{y}, these suffixes will be added to the output to diambiguate them.
+Should be a character vector of length 2.}
 
-\item{.extra}{A logical value indicating whether a new character variable, 
-\code{.extra}, should be created, which will be \code{TRUE} for any row of
-the new joined data that represents a combination of the \code{by}
-identifiers that has more rows than the original left and/or right data
-frames. The default is \code{FALSE}. An error will occur if a variable is 
-already named \code{.extra}, so make sure to rename or drop this variable 
-after each join when doing successive joins.}
+\item{.merge}{a character value used to name a new character variable, which
+tracks the source of each row of the new, joined data. If \code{NULL}, the
+default, no new merge-tracking variable will be created. An error will
+occur if a variable is already named the value specified in\code{.merge}, 
+so make sure to choose different names for different joins.}
+
+\item{.extra}{a character value used to name a new character variable, which 
+identifies any row of the new joined data that represents a combination of
+the \code{by} identifiers that has more rows than the original left and/or 
+right data frames. If \code{NULL}, the default, no new extra row tracking 
+variable will be created. An error will occur if a variable is already 
+named the value specified in\code{.extra}, so make sure to choose different
+names for different joins.}
 
 \item{...}{other parameters passed onto methods}
 }
@@ -68,42 +75,75 @@ after each join when doing successive joins.}
 Each _qc version of the join functions is identical to its dplyr equivalent
 except that it automatically prints the number of rows that were matched, the
 number of rows that were not matched, and the number of additional rows 
-compared to the initial data frame(s), for example when there is more than 
-one match on the \code{by} identifier(s). For \code{full_join_qc}, 
-\code{left_join_qc}, and \code{right_join_qc}, there is an added option of 
-creating a new variable called \code{.merge} that indicates whether the row
-in the joined data was from the \code{"left_only"}, \code{"right_only"} or 
-\code{"matched"}. This variable can be helpful when diagnosing why the join 
-did or did not match as desired. All join functions except anti and semi also 
-have the option of creating a new variable called \code{.extra} which 
-indicates whether the row in the joined data is an additional row with the
-given combination of \code{by}. For example, if there were only 2 rows with
-an id equal to "A" in the original left data set but 3 rows with this if in
-the right data set, then the joined data will have more rows with this if 
-than the original left. \code{.extra} flags whether a row represents a
-combination on \code{by} that has additional rows than the original left
-\code{.extra = "extra_left"}, right \code{.extra = "extra_left"}, both
-\code{.extra = "extra_both"} or none \code{.extra = "not_extra"}.
+compared to the initial data frame(s) - for example when there is more than
+one match on the \code{by} identifier(s). There are also options to create
+new variables identifying and classifying rows based on how/if they matched.
 }
+\section{Join Descriptions}{
+ 
+  All joins except \code{anti_join} and \code{semi_join} are classified as
+  one to one, one to many, many to one, or many to many. These definitions
+  describe the extent to which there are duplicated rows of unique 
+  combinations of the \code{by} variable(s). In one to one merges, there is
+  only one unique row of identifiers in each data set. Extra rows are never 
+  created in one to one joins. One to many and many to one joins occur when
+  one of the data sets has a duplicated id row. One to many implies the right 
+  data has the duplicated id; many to one implies the left data has the 
+  duplicated id. Additional rows may be created in these types of joins. Many
+  to many joins imply that both data sets have duplicated rows on the id
+  variable(s). Additional rows may be created in this types of join. The
+  join description is printed when performing any join except 
+  \code{anti_join} and \code{semi_join}.
+}
+
+\section{Optional New Variables}{
+
+  For \code{full_join_qc}, \code{left_join_qc}, and \code{right_join_qc}, 
+  there is an added option of creating a new variable that indicates whether 
+  the row in the joined data was from the \code{"left_only"}, 
+  \code{"right_only"} or \code{"matched"}. This variable can be helpful when
+  diagnosing why the join did or did not match as desired. Whatever character 
+  value that is supplied to \code{.merge} becomes the name of this new
+  variable.
+
+  \code{left_join_qc}, and \code{right_join_qc} also have the option of 
+  creating a new variable indicating whether the row in the  joined data is 
+  an additional row with the given combination of \code{by}. For example, if
+  there were only 2 rows with an ID equal to "A" in the original left data 
+  but 3 rows with this ID in the right data set, then the left joined data 
+  will have more rows with this ID than the original left. \code{.extra} is 
+  a chracter value that when supplied becomes the name of this new variable
+  flagging a row  that has additional rows than the original left 
+  or right data frame.
+}
+
 \section{Grouping}{
 
-  Groups are ignored for the purpose of joining, and the result does not 
-  preserve the grouping of \code{x}. This is the only difference with the 
-  dplyr joins, which do preserve the grouping of \code{x}.
+  Groups in the data frames are ignored for the purpose of joining, but the 
+  result preserves the grouping of \code{x}.
 }
 
 \examples{
-data_A <- data.frame(id = 1:10, A = 11:20)
-data_B <- data.frame(id = c(5, 5, 5, 5, 7, 7, 9, 10, 11, 12), B = 21:30)
+data_A <- 
+  data.frame(
+    id = 1:10, 
+    var_A = 11:20
+   )
+data_B <- 
+  data.frame(
+    id = c(5, 5, 5, 5, 6, 7, 7, 9, 10, 11), 
+    id_A = c(1:10), 
+    var_B = 21:30
+  )
 
 # Full join with new .merge variable
-full_join_qc(data_A, data_B, .merge = T)
+full_join_qc(data_A, data_B, .merge = "merge_ab")
 
 # Left join with new .extra variable
-left_join_qc(data_A, data_B, .extra = T)
+left_join_qc(data_A, data_B, .extra = "extra_ab")
 
 # Right join with both new variables
-right_join_qc(data_A, data_B, .merge = T, .extra = T)
+right_join_qc(data_A, data_B, .merge = "merge_ab", .extra = "extra_ab")
 
 }
 \seealso{

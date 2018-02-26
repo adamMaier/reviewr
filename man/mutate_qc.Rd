@@ -2,55 +2,93 @@
 % Please edit documentation in R/mutate_qc.R
 \name{mutate_qc}
 \alias{mutate_qc}
+\alias{mutate_qc}
 \alias{transmute_qc}
 \title{Report number of NAs created when performing dplyr mutate}
 \usage{
-mutate_qc(.data, ...)
+mutate_qc(.data, ..., .group_check = F)
 
-transmute_qc(.data, ...)
+transmute_qc(.data, ..., .group_check = F)
 }
 \arguments{
-\item{.data}{A tbl.}
+\item{.data}{A tbl. All main verbs are S3 generics and provide methods
+for \code{\link[=tbl_df]{tbl_df()}}, \code{\link[dtplyr:tbl_dt]{dtplyr::tbl_dt()}} and \code{\link[dbplyr:tbl_dbi]{dbplyr::tbl_dbi()}}.}
 
-\item{...}{Name-value pairs of expressions. Use \code{NULL} to drop a 
-variable.}
+\item{...}{Name-value pairs of expressions. Use \code{NULL} to drop
+a variable.
+
+These arguments are automatically \link[rlang:quo]{quoted} and
+\link[rlang:eval_tidy]{evaluated} in the context of the data
+frame. They support \link[rlang:quasiquotation]{unquoting} and
+splicing. See \code{vignette("programming")} for an introduction to
+these concepts.}
+
+\item{.group_check}{a logical value, that when TRUE, will print a table with
+each group variable, and columns called "var_name" and  "n_missing" that 
+together indicate, for each group, how many values are missing of newly
+created variables. Only variables that contain at least 1 missing value are 
+reported. This has no effect on the returned object, and only prints 
+information. Default is FALSE, to avoid excess printing. If data is not 
+grouped and .group_check = T, then an error is thrown.}
 }
 \value{
 An object of the same class as \code{.data}. This object will be
-  identical to that which is returned when running the standard 
-  \code{dplyr::mutate} or \code{dplyr::transmute} functions.
+  identical to that which is returned when running  \code{dplyr::mutate} or 
+  \code{dplyr::transmute} functions.
 }
 \description{
 \code{mutate_qc} and \code{transmute_qc} return identical objects as 
-\code{mutate} and \code{transmute}. Like dplyr, \code{mutate_qc} adds new 
-variables and preserves existing variables, and \code{transmute_qc} drops 
-existing variables.
+\code{dplyr::mutate} and \code{dplyr::transmute}. Like dplyr, \code{mutate_qc}
+adds new variables and preserves existing variables, and \code{transmute_qc} 
+drops existing variables.
 }
 \details{
 \code{mutate_qc} and \code{transmute_qc} are used exactly the same as 
 \code{mutate} and \code{transmute} and require all of the same arguments
 and return identical objects. The only difference is that the \code{_qc}
-versions print a message indicating the number of NA values created in the
-new or edited variable(s) after calling \code{mutate}.
+versions print a message indicating the number of NA or INFinite values 
+created in the new or edited variable(s).
 }
-\section{Scoped mutation and transmutation}{
+\section{Scoped variants}{
 
-  Currently there are not _qc versions of \code{mutate_at}, 
-  \code{mutate_all}, or \code{mutate_if}, or the \code{transmute} 
-  equivalents.
+  There are \code{_qc} versions of the scoped mutate functions. See 
+  \code{\link{mutate_at_qc}}, \code{\link{mutate_all_qc}}, or
+  \code{\link{mutate_if_qc}}. Or \code{\link{transmute_at_qc}}, 
+  \code{\link{transmute_all_qc}}, or \code{\link{transmute_if_qc}}.
+}
+
+\section{Grouping}{
+
+  All functions work with grouped data.
 }
 
 \examples{
-practice_data <- data.frame(A = c(1:4, NA), B = c(NA, 7:10), C = 21:25)
-
-mutate_qc(practice_data, new_var = A + B)
-
-transmute_qc(
-  practice_data,
-  new_var_1 = A + B,
-  new_var_2 = A - C
+practice_data <- 
+  data.frame(
+  A = c(1:4, NA), 
+  B = c(NA, 7:10), 
+  C = 21:25,
+  G = c("X", "X", "X", "Y", "Y"),
+  stringsAsFactors = F
 )
+
+# Use the _qc versions just like normal dplyr mutate functions
+mutate_qc(practice_data, new_var_1 = A + B, new_var_2 = A - C)
+
+# mutate_qc will only report the number of NAs and INFs in the final copy of
+# the variable, so if you mutate the same variable more thna once in the 
+# call, it's only the final outcome that gets tracked
+mutate_qc(practice_data, new_var = A + B, new_var = C + 1)
+
+# Functions worked on grouped data, too
+grouped_data <- dplyr::group_by(practice_data, G)
+mutate_qc(grouped_data, new_var_1 = A + mean(B), mean_b = mean(B))
+
+# Setting .group_check = T will also print a table indicating which groups
+# have a missing value, on what variable, and how many values are missing.
+mutate_qc(grouped_data, new_var_1 = A + mean(B), mean_b = mean(B), .group_check = T)
+
 }
 \seealso{
-\code{\link[dplyr]{mutate}}
+\code{\link[dplyr]{mutate}}, \code{\link[dplyr]{transmute}}
 }
