@@ -2,6 +2,8 @@
 
 export(anti_join_qc)
 export(filter_all_qc)
+export(filter_at_qc)
+export(filter_if_qc)
 export(full_join_qc)
 export(inner_join_qc)
 export(left_join_qc)

@@ -43,7 +43,7 @@
 #' # a lot of groups.
 #' grouped_data <- group_by(practice_data, G)
 #' filter_qc(grouped_data, A > 3, .group_check = T)
-
+#' 
 filter_qc <- function(.data, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T

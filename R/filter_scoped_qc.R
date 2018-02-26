@@ -119,6 +119,7 @@ filter_all_qc <- function(.tbl, .vars_predicate, .group_check = F) {
 }
 
 #' @rdname filter_all_qc
+#' @export
 filter_at_qc <- function(.tbl, .vars, .vars_predicate, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
@@ -154,6 +155,7 @@ filter_at_qc <- function(.tbl, .vars, .vars_predicate, .group_check = F) {
 }
 
 #' @rdname filter_all_qc
+#' @export
 filter_if_qc <- function(.tbl, .predicate, .vars_predicate, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
