@@ -1,10 +1,9 @@
 ---
 title: "Quality Control for dplyr"
 author: "Adam Maier, TNTP"
-date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{reviewr}
+  %\VignetteIndexEntry{Quality Control for dplyr}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
