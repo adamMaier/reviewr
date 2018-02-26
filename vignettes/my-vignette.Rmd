@@ -9,7 +9,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-# Purpose and Overview
+```{r, echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+## Purpose and Overview
 
 Most TNTP analysts use the package `dplyr` to clean data and perform basic analyses. And for good reason, it's a fantastic set of functions that makes this work substantially easier. However, to determine the extent to which the `dplyr` functions accomplished one's intended goals, analysts often have to write additional code to check their work, or *eyeball* their manipulated data to ensure correctness. For example, to see how many rows were lost after filtering data, one would have to remember the number of original rows in the data and then manually subtract the rows in the newly filtered data; to see how many rows were dropped for each group would take additional code. To see how many rows actually joined when performing a merge, or to see if the newly joined data contains more rows than expected because of duplicated matches, an analyst would have to write code before and after implementing a `dplyr` join function, like `left_join` or `full_join`.
 
@@ -17,18 +21,23 @@ The `reviewr` package makes performing these checks and others easy to implement
 
 `reviewr`, therefore, allows you to get under the hood of data cleaning with `dplyr`. It does not attempt or intend to tell if you `dplyr` "worked", but rather whether how you used the `dplyr` function(s) matched what you intended. (Does it make sense that you dropped 20 rows when performing the filter? Did you expect the join to not be a perfect 1-1 join? etc.)
 
-## Why use reviewr?
+### Why use reviewr?
 
 Some of the checks performed by `reviewr` are simple and are easy to do without the package. Determining how many rows were dropped after a filter is often just a matter of subtraction. Although reviewr saves you the step, it has the additional value of being more easily used in a series of piped functions. For example, the following chunk of code performs filters at two steps. To determine how many rows were dropped at each step would require the analyst to break apart the code and test both. But with `reviewr`, you can keep the pipe as is, and simply add `_qc`.
 
-```{r, echo = TRUE}
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
 library(reviewr)
+```
+
+```{r, echo = TRUE, warning = FALSE}
 
 normal_output <- mtcars %>% 
   filter(mpg < 25) %>% 
   group_by(vs) %>% 
   filter(hp > mean(hp))
+```
 
+```{r, echo = TRUE}
 reviewr_output <- mtcars %>% 
   filter_qc(mpg < 25) %>% 
   group_by(vs) %>% 
@@ -44,7 +53,7 @@ all.equal(normal_output, reviewr_output)
 
 Because `reviewr` was built on the premise of toggling back and forth between `dplyr` and `reviewr` functions when needed, it is meant to particularly assist those performing Quality Control checks, as the checker can simply add `_qc` at the end of the existing code to dive more deeply into what the code did.
 
-## Working with grouped data
+### Working with grouped data
 
 If you simply add `_qc_` to the end of `dplyr` code, `reviewr`could be helpful. But it also includes an option to learn more about what happened to each group in your data if you have a grouped structure. For example, how many rows in each group were dropped when filtering? Which groups, if any, had NA values created when doing a `group_by()` and `summarize()` combination, and on which variables? Many of the `reviewr` functions have an option to print this information:
 
@@ -61,20 +70,20 @@ Again, the two outputs are identical; `reviewr` simply prints more information.
 all.equal(normal_output, reviewr_output)
 ```
 
-# reviewr Functions
+## reviewr Functions
 
-There are currently four sets of `dplyr` functions to which you can add `_qc` suffix and get a `reviewr` equivalent:
-* **Filter:** `filter_qc`, `filter_all_qc`, `filter_at_qc`, and `filter_if_qc`
-* **Mutate:** `mutate_qc`, `mutate_all_qc`, `mutate_at_qc`, and `mutate_if_qc`. And `transmute_qc`, `transmute_all_qc`, `transmute_at_qc`, and `transmute_if_qc`
-* **Summarize:** `summarize_qc`, `summarize_all_qc`, `summarize_at_qc`, and `summarize_if_qc`
-* **Joins:** `full_join_qc`, `inner_join_qc`, `left_join_qc`, `right_join_qc`, `semi_join_qc`, and `anti_join_qc`
+There are currently four sets of `dplyr` functions to which you can add `_qc` suffix and get a `reviewr` equivalent
+
+* Filter.  `filter_qc`, `filter_all_qc`, `filter_at_qc`, and `filter_if_qc`
+* Mutate.  `mutate_qc`, `mutate_all_qc`, `mutate_at_qc`, and `mutate_if_qc`. And `transmute_qc`, `transmute_all_qc`, `transmute_at_qc`, and `transmute_if_qc`
+* Summarize.  `summarize_qc`, `summarize_all_qc`, `summarize_at_qc`, and `summarize_if_qc`
+* Joins.  `full_join_qc`, `inner_join_qc`, `left_join_qc`, `right_join_qc`, `semi_join_qc`, and `anti_join_qc`
 
 Although, some `reviewr` functions have additional options, all `reviewr` functions will work by simply using them as you would `dplyr`. This means you can start using them now: if you know how to use their `dplyr` versions, the `reviewr` functions will be implemented identically.
 
 Below are examples for each set of `reviewr` functions and a brief discussion of additional options you can use.
 
-
-## Filtering
+### Filtering
 
 The set of `reviewr` filtering functions report the number of rows that were dropped after performing the filter.
 
@@ -99,17 +108,19 @@ filter_at_qc(mtcars, vars(vs, am), all_vars(. == 1))
 All of the scoped filter functions have an option for `group_check`
 
 
-## Mutating
+### Mutating
 
 The set of `reviewr` mutate functions report the number of NA or INF values created in the newly mutated variable(s).
 
 ```{r, echo = TRUE}
-mtcars %>% 
+output <- mtcars %>% 
   mutate_qc(
     mpg_c21 = mpg - 21,
     inv_mpg_c21 = 1 / mpg_c21
   ) %>%
   select(mpg, mpg_c21, inv_mpg_c21)
+
+head(output)
 ```
 
 With grouped data and with `.group_check = T`, you can find out the number of missing rows per group and on which variables. With this option, a table will be printed with a columns called "var_name" and n_missing, indicating how many missing values there are for each newly mutated variable for each group. Note that this could print a big table if you have a lot of groups.
@@ -142,7 +153,7 @@ all.equal(result_normal, result_withOption)
 `reviewr` has  `_qc` versions of the scoped filter functions, too.
 
 ```{r, echo = TRUE}
-mutate_all_qc(mtcars, funs(inv = 1 / .))
+output <- mutate_all_qc(mtcars, funs(inv = 1 / .))
 ```
 
 All of the scoped filter functions have an option for `.group_check`.
@@ -150,7 +161,7 @@ All of the scoped filter functions have an option for `.group_check`.
 `reviewr` has `_qc` versions of `transmute()` and all of its scoped variants, as well.
 
 
-## Summarizing
+### Summarizing
 
 The set of `reviewr` summarize functions report the number of NA or INF values created in the newly summarized variable(s). Though available, this feature is typically not useful when using `summarize()` to create small summary tables - it will be pretty obvious in these cases when something is `NA` - but could be helpful when using `summarize()` on grouped data to create new variables you'll later use.
 
@@ -173,7 +184,7 @@ Whether or not `group_check = T`, the returned summarized data is identical. `.g
 `reviewr` has  `_qc` versions of the scoped filter functions, too.
 
 ```{r, echo = TRUE}
-mtcars %>%
+result <- mtcars %>%
   group_by(am) %>%
   summarize_at_qc(vars(mpg, hp, vs), funs(inv = mean(1 / .)))
 ```
@@ -183,15 +194,19 @@ All of the scoped filter functions have an option for `.group_check`.
 `reviewr` has  `_qc` versions of `summarize()` and `summarise()` and all of their scoped variants. But this is America, so use a "z"!
 
 
-## Joins
+### Joins
 
 The set of `reviewr` join functions report several things:
-* **Type of Join:** Joins are classified as one to one, one to many, many to one, or many to many. These definitions describe the extent to which there are duplicated rows of unique combinations of the `by` variable(s).     * In one to one merges, there is only one unique row of identifiers in each data set. Extra rows are never created in one to one joins.
-    * One to many and many to one joins occur when one of the data sets has a duplicated id row. One to many implies the right data has the duplicated id; many to one implies the left data has the duplicated id. Additional rows may be created in these types of joins.
-    * Many to many joins imply that both data sets have duplicated rows on the id variable(s). Additional rows may be created in this types of join.
-* **Match Distribution in Joined Data:** The number of percent of rows in the newly joined data that were from the left only, right only, or matched.
-* **Match Rates Based on Original Data:** The percent of the rows from the original left and right data frames that had a match.
-* **Additional Rows:** When the join is not one-to-one, some rows might be duplicated. This indicates how many more rows than the original left and/or right data sets are in the newly joined data.
+
+* __Type of Join__  Joins are classified as one to one, one to many, many to one, or many to many. These definitions describe the extent to which there are duplicated rows of unique combinations of the `by` variable(s).
+
+    * In _one to one_ merges, there is only one unique row of identifiers in each data set. Extra rows are never created in one to one joins.
+    * _One to many_ and _many to one_ joins occur when one of the data sets has a duplicated id row. One to many implies the right data has the duplicated id; many to one implies the left data has the duplicated id. Additional rows may be created in these types of joins. 
+    * _Many to many_ joins imply that both data sets have duplicated rows on the id variable(s). Additional rows may be created in this types of join.
+    
+* __Match Distribution in Joined Data__  The number of percent of rows in the newly joined data that were from the left only, right only, or matched.
+* __Match Rates Based on Original Data__  The percent of the rows from the original left and right data frames that had a match.
+* __Additional Rows__  When the join is not one-to-one, some rows might be duplicated. This indicates how many more rows than the original left and/or right data sets are in the newly joined data.
 
 As with all the `reviewr` functions, simply add a `_qc` to the end of a `dplyr` join function:
 
@@ -221,13 +236,14 @@ all.equal(joined_data_normal, joined_data_reviewr)
 `reviewr` automatically detects the type of join:
 
 ```{r, echo = TRUE}
-left_join_qc(data_A, data_B, by = c("id" = "id_A"))
+joined_data <- left_join_qc(data_A, data_B, by = c("id" = "id_A"))
 ```
 
 There are two options available. `.merge` and `.extra`. Set `.merge` equal to a name you want to use for a new variable that will indicate, for each row, whether it was a match, from the left only, or from the right only.
 
 ```{r, echo = TRUE}
 joined_data <- full_join_qc(data_A, data_B, .merge = "name_me")
+
 print.data.frame(joined_data)
 ```
 
@@ -235,6 +251,7 @@ Set `.extra` equal to a name you want to use for a new variable that will indica
 
 ```{r, echo = TRUE}
 joined_data <- full_join_qc(data_A, data_B, .extra = "name_me_too")
+
 print.data.frame(joined_data)
 ```
 
@@ -243,6 +260,6 @@ The defaults for both `.merge` and `.extra` are `NULL`. If either option is used
 There are no group options for the `join` functions. As in `dplyr`, groups are ignored for the purposes of joining, but the groups from the first data set are preserved.
 
 
-# What else?
+## What else?
 
 I'd love to know what other types of quick QCs you find yourself doing repeatedly when manipulating data, especially those anchored to the `dplyr` functions. I expect and hope to widen this package going forward.
