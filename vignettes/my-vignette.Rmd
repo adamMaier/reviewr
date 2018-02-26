@@ -22,7 +22,7 @@ The `reviewr` package makes performing these checks and others easy to implement
 Some of the checks performed by `reviewr` are simple and are easy to do without the package. Determining how many rows were dropped after a filter is often just a matter of subtraction. Although reviewr saves you the step, it has the additional value of being more easily used in a series of piped functions. For example, the following chunk of code performs filters at two steps. To determine how many rows were dropped at each step would require the analyst to break apart the code and test both. But with `reviewr`, you can keep the pipe as is, and simply add `_qc`.
 
 ```{r, echo = TRUE}
-library(dplyr)
+library(reviewr)
 
 normal_output <- mtcars %>% 
   filter(mpg < 25) %>% 
