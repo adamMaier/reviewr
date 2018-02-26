@@ -2,9 +2,13 @@
 % Please edit documentation in R/summarize_qc.R
 \name{summarize_qc}
 \alias{summarize_qc}
+\alias{summarize_qc}
+\alias{summarise_qc}
 \title{Report number of NAs created when performing dplyr summarize}
 \usage{
 summarize_qc(.data = NULL, ..., .group_check = F)
+
+summarise_qc(.data = NULL, ..., .group_check = F)
 }
 \arguments{
 \item{.data}{A tbl. All main verbs are S3 generics and provide methods

@@ -64,6 +64,12 @@
 #'   sum(C)
 #' )
 #' 
+#' @name summarize_qc
+NULL
+
+
+#' @rdname summarize_qc
+#' @export
 summarize_qc <- function(.data = NULL, ..., .group_check = F) {
 
   # Check to make sure data is grouped if .group_check = T
@@ -140,6 +146,8 @@ summarize_qc <- function(.data = NULL, ..., .group_check = F) {
   
 }
 
+#' @rdname summarize_qc
+#' @export
 summarise_qc <- function(.data = NULL, ..., .group_check = F) {
   
   # Preparing arguments to pass to functions
