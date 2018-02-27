@@ -210,7 +210,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   matched_percent_x <- dplyr::tally(matched_percent_x) / dplyr::tally(x) 
   matched_percent_x <- 100 * round(matched_percent_x, 3)
   matched_percent_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
-  matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(x) 
+  matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(y) 
   matched_percent_y <- 100 * round(matched_percent_y, 3)
   
   # Counting extra rows created
