@@ -174,7 +174,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   
   # Doing join based on which qc function is calling. Going up two levels in
   # sys.call because qc join functions called using do.call
-  fn_name <- gsub("\\(.*", "", deparse(sys.call(-2)[[1]]))
+  fn_name <- gsub("\\(.*", "", deparse(sys.call(-1)[[1]]))
   
   if (fn_name == "full_join_qc") {
     joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, 
@@ -195,7 +195,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, 
                                 suffix = suffix, ... = ...)
   }
-  
+
   # Calculating number of matches in newly joined data
   matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
   unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
@@ -341,32 +341,36 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 #' @export
 full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
-  .args <- as.list(match.call()[-1])
-  do.call(join_dispatch, .args)
+  join_dispatch(
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+  )
 }
 
 #' @rdname join_qc
 #' @export
 inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
-  .args <- as.list(match.call()[-1])
-  do.call(join_dispatch, .args)
+  join_dispatch(
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+  )
 }
 
 #' @rdname join_qc
 #' @export
 left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
-  .args <- as.list(match.call()[-1])
-  do.call(join_dispatch, .args)
+  join_dispatch(
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+  )
 }
 
 #' @rdname join_qc
 #' @export
 right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
-  .args <- as.list(match.call()[-1])
-  do.call(join_dispatch, .args)
+  join_dispatch(
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+  )
 }
 
 #' @rdname join_qc
