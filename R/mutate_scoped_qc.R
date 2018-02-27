@@ -70,79 +70,81 @@ na_counter_mutate_scoped <- function(.args = NULL) {
   # Creating a new variable representing the function which calls na_counter
   fn_name <- gsub("\\(.*", "", deparse(sys.call(-1)[[1]]))
 
-  if (fn_name %in% c("mutate_all_qc", "transmute_all_qc")) {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_all, args = .args))
-  }
+  fn_name}
   
-  if (fn_name %in% c("mutate_at_qc", "transmute_at_qc")) {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_at, args = .args))
-  }
-  
-  if (fn_name %in% c("mutate_if_qc", "transmute_if_qc")) {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_if, args = .args))
-  }
-  
-  # Remove group variables, if any
-  group_var <- attr(tm_data, "vars")
-  keep_vars <- names(tm_data)[!names(tm_data) %in% group_var]
-  modified_vars <- dplyr::ungroup(tm_data)
-  modified_vars <- dplyr::select_at(modified_vars, keep_vars)
-  
-  # Count number of NAs in each modified variable
-  num_na <- 
-    dplyr::summarize_all(
-      modified_vars, 
-      dplyr::funs(sum(is.na(.) | is.infinite(.)))
-    )
-      
-  mapply(
-    FUN = function(x, y) message(x, " NAs or INFs produced in ", y), 
-    x = num_na, y = names(num_na)
-  )
-
-}
-
-# A function to count and print number of missing entries per group
-na_counter_grp_mutate_scoped <- function(.args = NULL) {
-  
-  # Creating a new variable representing the function which calls na_counter
-  fn_name <- gsub("\\(.*", "", deparse(sys.call(-1)[[1]]))
-  
-  if (fn_name %in% c("mutate_all_qc", "transmute_all_qc")) {
-    tm_data <- suppressMessages(do.call(dplyr::transmute_all, args = .args))
-  }
-  
-  if (fn_name %in% c("mutate_at_qc", "transmute_at_qc")) {
-    tm_data <- suppressMessages(do.call(dplyr::transmute_at, args = .args))
-  }
-  
-  if (fn_name %in% c("mutate_if_qc", "transmute_if_qc")) {
-    tm_data <- suppressMessages(do.call(dplyr::transmute_if, args = .args))
-  }
-  
-  # Obtain newly modified variables
-  group_vars <- attr(tm_data, "vars")
-  new_vars <- names(tm_data)[!names(tm_data) %in% group_vars] 
-  
-  # Counting number of NAs in each newly created variable by group
-  num_na <- 
-    dplyr::summarize_all(
-      tm_data, 
-      dplyr::funs(sum(is.na(.) | is.infinite(.)))
-    )
-  
-  num_na_long <- tidyr::gather(num_na, key = var_name, value = n_mising, new_vars)
-  num_na_long <- dplyr::filter(num_na_long, n_mising >= 1)
-  
-  if (dplyr::tally(num_na_long) > 0) {
-    message("\n", "NUMBER OF VALUES MISSING BY GROUP AND VARIABLE:")
-    print.data.frame(num_na_long)
-  } else {
-    message("\n", "No missing values in any group in newly mutated variables")
-  }
-  
-}
-
+#   if (fn_name %in% c("mutate_all_qc", "transmute_all_qc")) {
+#     tm_data <- suppressWarnings(do.call(dplyr::transmute_all, args = .args))
+#   }
+#   
+#   if (fn_name %in% c("mutate_at_qc", "transmute_at_qc")) {
+#     tm_data <- suppressWarnings(do.call(dplyr::transmute_at, args = .args))
+#   }
+#   
+#   if (fn_name %in% c("mutate_if_qc", "transmute_if_qc")) {
+#     tm_data <- suppressWarnings(do.call(dplyr::transmute_if, args = .args))
+#   }
+#   
+#   # Remove group variables, if any
+#   group_var <- attr(tm_data, "vars")
+#   keep_vars <- names(tm_data)[!names(tm_data) %in% group_var]
+#   modified_vars <- dplyr::ungroup(tm_data)
+#   modified_vars <- dplyr::select_at(modified_vars, keep_vars)
+#   
+#   # Count number of NAs in each modified variable
+#   num_na <- 
+#     dplyr::summarize_all(
+#       modified_vars, 
+#       dplyr::funs(sum(is.na(.) | is.infinite(.)))
+#     )
+#       
+#   mapply(
+#     FUN = function(x, y) message(x, " NAs or INFs produced in ", y), 
+#     x = num_na, y = names(num_na)
+#   )
+# 
+# }
+# 
+# # A function to count and print number of missing entries per group
+# na_counter_grp_mutate_scoped <- function(.args = NULL) {
+#   
+#   # Creating a new variable representing the function which calls na_counter
+#   fn_name <- gsub("\\(.*", "", deparse(sys.call(-1)[[1]]))
+#   
+#   if (fn_name %in% c("mutate_all_qc", "transmute_all_qc")) {
+#     tm_data <- suppressMessages(do.call(dplyr::transmute_all, args = .args))
+#   }
+#   
+#   if (fn_name %in% c("mutate_at_qc", "transmute_at_qc")) {
+#     tm_data <- suppressMessages(do.call(dplyr::transmute_at, args = .args))
+#   }
+#   
+#   if (fn_name %in% c("mutate_if_qc", "transmute_if_qc")) {
+#     tm_data <- suppressMessages(do.call(dplyr::transmute_if, args = .args))
+#   }
+#   
+#   # Obtain newly modified variables
+#   group_vars <- attr(tm_data, "vars")
+#   new_vars <- names(tm_data)[!names(tm_data) %in% group_vars] 
+#   
+#   # Counting number of NAs in each newly created variable by group
+#   num_na <- 
+#     dplyr::summarize_all(
+#       tm_data, 
+#       dplyr::funs(sum(is.na(.) | is.infinite(.)))
+#     )
+#   
+#   num_na_long <- tidyr::gather(num_na, key = var_name, value = n_mising, new_vars)
+#   num_na_long <- dplyr::filter(num_na_long, n_mising >= 1)
+#   
+#   if (dplyr::tally(num_na_long) > 0) {
+#     message("\n", "NUMBER OF VALUES MISSING BY GROUP AND VARIABLE:")
+#     print.data.frame(num_na_long)
+#   } else {
+#     message("\n", "No missing values in any group in newly mutated variables")
+#   }
+#   
+# }
+# 
 
 
 # EXPORTED FUNCTIONS ----------------------------------------------------------- 
@@ -170,7 +172,7 @@ mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
     na_counter_grp_mutate_scoped(.args = .args)
   }
   
-  return(out)
+  return(na_counter_mutate_scoped)
   
 }
 
