@@ -99,7 +99,7 @@ NULL
 # This function performs the join based on which function called it and prints
 # all of the standard diagnoses
 join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                          .merge = NULL, .extra = NULL, ...) {
+                          .merge = NULL, .extra = NULL, ..., type = NULL) {
   
   # Removing all group attributes from tables, but keeping group of x to 
   # re-apply after merge
@@ -172,26 +172,23 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   join_type <- paste("This was a", left_type, "TO", right_type, "join")
 
   
-  # Doing join based on which qc function is calling. Going up two levels in
-  # sys.call because qc join functions called using do.call
-  fn_name <- gsub("\\(.*", "", deparse(sys.call(-1)[[1]]))
-  
-  if (fn_name == "full_join_qc") {
+  # Doing join based on which qc function is calling.
+  if (type == "full") {
     joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, 
                                suffix = suffix, ... = ...)
   }
   
-  if (fn_name == "inner_join_qc") {
+  if (type == "inner") {
     joined <- dplyr::inner_join(x = x, y = y, by = by, copy = copy, 
                                 suffix = suffix, ... = ...)
   }
   
-  if (fn_name == "left_join_qc") {
+  if (type == "left") {
     joined <- dplyr::left_join(x = x, y = y, by = by, copy = copy, 
                                suffix = suffix, ... = ...)
   }
   
-  if (fn_name == "right_join_qc") {
+  if (type == "right") {
     joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, 
                                 suffix = suffix, ... = ...)
   }
@@ -341,8 +338,11 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 #' @export
 full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
+  
+  # Preparing arguments to pass to functions
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
+    ... = ..., type = "full"
   )
 }
 
@@ -351,7 +351,8 @@ full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
+    ... = ..., type = "inner"
   )
 }
 
@@ -360,7 +361,8 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
+    ... = ..., type = "left"
   )
 }
 
@@ -369,7 +371,8 @@ left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, ... = ...
+    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
+    ... = ..., type = "right"
   )
 }
 
@@ -378,7 +381,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
-    anti_joined <- dplyr::anti_join(x, y, by = by, suffix = suffix, ... = ...)
+    anti_joined <- dplyr::anti_join(x = x, y = y, by = by, suffix = suffix, ... = ...)
 
     # Calculating merge diagnoses 
     unmatched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
@@ -403,7 +406,7 @@ anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
 semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
-    joined <- dplyr::semi_join(x, y, by = by, suffix = suffix, ... = ...)
+    joined <- dplyr::semi_join(x = x, y = y, by = by, suffix = suffix, ... = ...)
     
     # Calculating merge diagnoses 
     unmatched_x <- dplyr::tally(x) - dplyr::tally(joined)
