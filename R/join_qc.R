@@ -198,6 +198,9 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
   unmatched_y <- dplyr::tally(joined, is.na(.x_tracker) & !is.na(.y_tracker))
   total <- dplyr::tally(joined)
+  matched_percent <- 100 * round(matched / total, 3)
+  unmatched_x_percent <- 100 * round(unmatched_x / total, 3)
+  unmatched_y_percent <- 100 * round(unmatched_y / total, 3)
   
   # Percent of rows from each data set that matched
   matched_ids <- dplyr::filter(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
@@ -206,11 +209,13 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   matched_ids_y <- matched_ids_x
   names(matched_ids_y) <- matched_vars_right
   
-  matched_percent_x <- suppressMessages(dplyr::inner_join(x, matched_ids_x))
-  matched_percent_x <- dplyr::tally(matched_percent_x) / dplyr::tally(x) 
+  matched_x <- suppressMessages(dplyr::inner_join(x, matched_ids_x))
+  matched_x <- dplyr::tally(matched_x)
+  matched_percent_x <- matched_x / dplyr::tally(x) 
   matched_percent_x <- 100 * round(matched_percent_x, 3)
-  matched_percent_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
-  matched_percent_y <- dplyr::tally(matched_percent_y) / dplyr::tally(y) 
+  matched_y <- suppressMessages(dplyr::inner_join(y, matched_ids_y))
+  matched_y <- dplyr::tally(matched_y)
+  matched_percent_y <- matched_y / dplyr::tally(y) 
   matched_percent_y <- 100 * round(matched_percent_y, 3)
   
   # Counting extra rows created
@@ -232,22 +237,21 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     "\n",
     join_type, "\n",
     "\n",
-    "MATCH DISTRIBUTION IN JOINED DATA\n",
-    matched, " (", 100 * round(matched / total, 3), "%) Rows are matches", "\n",
-    unmatched_x, " (", 100 * round(unmatched_x / total, 3), "%) Rows are from left only", "\n",
-    unmatched_y, " (", 100 * round(unmatched_y / total, 3), "%) Rows are from right only", "\n",
+    "MATCH DISTRIBUTION IN JOINED DATA", "\n",
+    matched, " (", matched_percent, "%) Rows are matches", "\n",
+    unmatched_x, " (", unmatched_x_percent, "%) Rows are from left only", "\n",
+    unmatched_y, " (", unmatched_y_percent, "%) Rows are from right only", "\n",
     "\n",
-    "MATCH RATES BASED ON ORIGINAL DATA\n",
-    matched_percent_x, "% Percent of rows from left matched" ,"\n",
-    matched_percent_y, "% Percent of rows from right matched", "\n",
+    "MATCH RATES BASED ON ORIGINAL DATA", "\n",
+    matched_x, " (", matched_percent_x, "%) Rows from left matched", "\n",
+    matched_y, " (", matched_percent_y, "%) Rows from left matched", "\n",
     "\n",
-    "ADDITIONAL ROWS\n",
+    "ADDITIONAL ROWS", "\n",
     extra_rows_x, " More rows with a matched ID than original left", "\n",
     extra_rows_y, " More rows with a matched ID than original right"
   )
   
-  # Create .merge variable if specified. This is the only part of the code
-  # that requires rlang. Could not figure out how to implement := otherwise
+  # Create .merge variable if specified.
   if (!is.null(.merge)) {
     joined <- 
       dplyr::mutate(
@@ -265,7 +269,6 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
   
   # Create .extra variable if specified.
-  # In a full join, extra rows can happen when not a 1-1 merge
   if (!is.null(.extra)) {
     
     # Isolate combinations of ID varaibles in left/right table with more than one,
