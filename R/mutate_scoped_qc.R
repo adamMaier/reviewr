@@ -70,46 +70,7 @@ na_counter_mutate_scoped <- function(.args_type = NULL) {
   # Dropping type from arguments
   .args <- .args_type
   .args$.type <- NULL
-
-  # Calling appropriate scope
-  if (.args_type$.type == "all") {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_all, args = .args))
-  }
-
-  if (.args_type$.type == "at") {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_at, args = .args))
-  }
-
-  if (.args_type$.type == "if") {
-    tm_data <- suppressWarnings(do.call(dplyr::transmute_if, args = .args))
-  }
-
-  # Remove group variables, if any
-  group_var <- attr(tm_data, "vars")
-  keep_vars <- names(tm_data)[!names(tm_data) %in% group_var]
-  modified_vars <- dplyr::ungroup(tm_data)
-  modified_vars <- dplyr::select_at(modified_vars, keep_vars)
-
-  # Count number of NAs in each modified variable
-  num_na <-
-    dplyr::summarize_all(
-      modified_vars,
-      dplyr::funs(sum(is.na(.) | is.infinite(.)))
-    )
-
-  mapply(
-    FUN = function(x, y) message(x, " NAs or INFs produced in ", y),
-    x = num_na, y = names(num_na)
-  )
-
-}
-
-# A function to count and print number of missing entries per group
-na_counter_grp_mutate_scoped <- function(.args_type = NULL) {
-
-  # Dropping type from arguments
-  .args <- .args_type
-  .args$.type <- NULL
+  .args$.group_check <- NULL
 
   # Calling appropriate scope
   if (.args_type$.type == "all") {
@@ -124,25 +85,43 @@ na_counter_grp_mutate_scoped <- function(.args_type = NULL) {
     tm_data <- suppressMessages(do.call(dplyr::transmute_if, args = .args))
   }
 
-  # Obtain newly modified variables
-  group_vars <- attr(tm_data, "vars")
-  new_vars <- names(tm_data)[!names(tm_data) %in% group_vars]
+  # Identify group variable and isolate mutated variables
+  group_var <- attr(tm_data, "vars")
+  new_vars <- names(tm_data)[!names(tm_data) %in% group_var]
+  modified_vars <- dplyr::ungroup(tm_data)
+  modified_vars <- dplyr::select_at(modified_vars, new_vars)
 
-  # Counting number of NAs in each newly created variable by group
+  # Count number of NAs in each modified variable
   num_na <-
     dplyr::summarize_all(
-      tm_data,
+      modified_vars,
       dplyr::funs(sum(is.na(.) | is.infinite(.)))
     )
 
-  num_na_long <- tidyr::gather(num_na, key = var_name, value = n_mising, new_vars)
-  num_na_long <- dplyr::filter(num_na_long, n_mising >= 1)
-
-  if (dplyr::tally(num_na_long) > 0) {
-    message("\n", "NUMBER OF VALUES MISSING BY GROUP AND VARIABLE:")
-    print.data.frame(num_na_long)
-  } else {
-    message("\n", "No missing values in any group in newly mutated variables")
+  mapply(
+    FUN = function(x, y) message(x, " NAs or INFs produced in ", y),
+    x = num_na, y = names(num_na)
+  )
+  
+  # Counting number of NAs in each newly created variable by group if group check = T
+  if (.args_type$.group_check == T) {
+    
+    num_na_grp <-
+      dplyr::summarize_all(
+        tm_data,
+        dplyr::funs(sum(is.na(.) | is.infinite(.)))
+      )
+    
+    num_na_long <- tidyr::gather(num_na, key = var_name, value = n_mising, new_vars)
+    num_na_long <- dplyr::filter(num_na_long, n_mising >= 1)
+    
+    if (dplyr::tally(num_na_long) > 0) {
+      message("\n", "NUMBER OF VALUES MISSING BY GROUP AND VARIABLE:")
+      print.data.frame(num_na_long)
+    } else {
+      message("\n", "No missing values in any group in newly mutated variables")
+    }
+    
   }
 
 }
@@ -163,7 +142,7 @@ mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
   .args <- c(list(".tbl" = .tbl, ".funs" = .funs), add_args)
-  .args_type <- c(.args, list(".type" = "all"))
+  .args_type <- c(.args, list(".group_check" = .group_check, ".type" = "all"))
 
   # Performing mutate
   out <- do.call(dplyr::mutate_all, .args)
@@ -171,10 +150,6 @@ mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args_type = .args_type)
 
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args_type = .args_type)
-  }
-  
   return(out)
   
 }
@@ -191,17 +166,13 @@ transmute_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
   .args <- c(list(".tbl" = .tbl, ".funs" = .funs), add_args)
-  .args_type = c(.args, list(".type" = "all"))
+  .args_type = c(.args, list(".group_check" = .group_check, ".type" = "all"))
   
   # Performing mutate
   out <- do.call(dplyr::transmute_all, .args)
   
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args = .args_type)
-  
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args = .args_type)
-  }
   
   return(out)
   
@@ -223,17 +194,13 @@ mutate_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F
     add_args,
     list(".cols" = .cols)
   )
-  .args_type = c(.args, list(".type" = "at"))
+  .args_type = c(.args, list(".group_check" = .group_check, ".type" = "at"))
 
   # Performing mutate
   out <- do.call(dplyr::mutate_at, .args)
   
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args = .args_type)
-  
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args = .args_type)
-  }
   
   return(out)
   
@@ -255,18 +222,14 @@ transmute_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check 
     add_args,
     list(".cols" = .cols)
   )
-  .args_type = c(.args, list(".type" = "at"))
+  .args_type = c(.args, list(".group_check" = .group_check, ".type" = "at"))
   
   # Performing mutate
   out <- do.call(dplyr::transmute_at, .args)
   
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args = .args_type)
-  
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args = .args_type)
-  }
-  
+
   return(out)
   
 }
@@ -286,17 +249,13 @@ mutate_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
     list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs), 
     add_args
   )
-  .args_type = c(.args, list(".type" = "if"))
+  .args_type = c(.args, list(".group_check" = .group_check, ".type" = "if"))
   
   # Performing mutate
   out <- do.call(dplyr::mutate_if, .args)
   
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args = .args_type)
-  
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args = .args_type)
-  }
   
   return(out)
   
@@ -317,18 +276,14 @@ transmute_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
     list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs), 
     add_args
   )
-  .args_type = c(.args, list(".type" = "if"))
+  .args_type = c(.args, list(".group_check" = .group_check, ".type" = "if"))
   
   # Performing mutate
   out <- do.call(dplyr::transmute_if, .args)
   
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args = .args_type)
-  
-  if (.group_check == T) {
-    na_counter_grp_mutate_scoped(.args = .args_type)
-  }
-  
+
   return(out)
   
 }

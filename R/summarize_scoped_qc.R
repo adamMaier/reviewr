@@ -69,13 +69,15 @@ NULL
 # HELPER FUNCTIONS ------------------------------------------------------------- 
 
 # A function to count and print number of missing entries in final columns
-na_counter_sum <- function(.orig_data = NULL, .processed_data = NULL) {
+na_counter_sum <- function(.orig_data = NULL, .processed_data = NULL, .group_check = NULL) {
 
-  # Dropping group variables from being printed, if any.
-  group_var <- attr(.orig_data, "vars")
-  keep_vars <- names(.processed_data)[!names(.processed_data) %in% group_var]
+  # Obtaining names of original group variables, if any.
+  group_vars <- attr(.orig_data, "vars")
+  
+  # Isolating new, summarized variables
+  new_vars <- names(.processed_data)[!names(.processed_data) %in% group_vars]
   new_vars_data <- dplyr::ungroup(.processed_data)
-  new_vars_data <- dplyr::select_at(new_vars_data, keep_vars)
+  new_vars_data <- dplyr::select_at(new_vars_data, new_vars)
   
   # Counting number of NAs in each newly created variable
   num_na <- 
@@ -88,47 +90,42 @@ na_counter_sum <- function(.orig_data = NULL, .processed_data = NULL) {
     FUN = function(x, y) message(x, " NAs or INFs produced in ", y), 
     x = num_na, y = names(num_na)
   )
-
-}
-
-# A function to print missing variables for each group (with n >1 missing vars)
-na_counter_grp_sum <- function(.orig_data = NULL, .processed_data = NULL) {
   
-  # Obtaining names of original group variables and grouping processed data by 
-  # them
-  group_vars <- attr(.orig_data, "vars")
-  # processed_data <- dplyr::group_by_at(.processed_data, group_vars)
-
-  # Keep just rows with missing variables on new vars and
-  new_vars <- names(.processed_data)[!names(.processed_data) %in% group_vars]
-  g_with_missing <- 
-    dplyr::filter(.processed_data, !complete.cases(.processed_data[, new_vars]))
-  
-  # Reshape data so just one variable for each row, which lists missing 
-  # variables
-  g_with_missing <- 
-    tidyr::gather(
-      g_with_missing,
-      key = key,
-      value = value,
-      new_vars
-    )
-  
-  g_with_missing <- dplyr::filter(g_with_missing, is.na(value) | is.infinite(value))
-  g_with_missing <- dplyr::group_by_at(g_with_missing, group_vars)
-  g_with_missing <- dplyr::summarize(g_with_missing, missing_vars = paste0(key, collapse = ", "))
-  g_with_missing <- dplyr::ungroup(g_with_missing)
-
-  if (dplyr::tally(g_with_missing) > 0) {
-    message("\n", "GROUPS WITH MISSING VALUES:")
-    print.data.frame(g_with_missing)
-    message("\n")
-  } else {
-    message("\n", "No missing values in any group in newly summarized variables")
-    message("\n")
+  # Identifiying groups with a missing variable, if any
+  if (.group_check == T) {
+    
+    # Keep just rows with missing variables on new vars and
+    g_with_missing <- 
+      dplyr::filter(.processed_data, !complete.cases(.processed_data[, new_vars]))
+    
+    # Reshape data so just one variable for each row, which lists missing 
+    # variables
+    g_with_missing <- 
+      tidyr::gather(
+        g_with_missing,
+        key = key,
+        value = value,
+        new_vars
+      )
+    
+    g_with_missing <- dplyr::filter(g_with_missing, is.na(value) | is.infinite(value))
+    g_with_missing <- dplyr::group_by_at(g_with_missing, group_vars)
+    g_with_missing <- dplyr::summarize(g_with_missing, missing_vars = paste0(key, collapse = ", "))
+    g_with_missing <- dplyr::ungroup(g_with_missing)
+    
+    if (dplyr::tally(g_with_missing) > 0) {
+      message("\n", "GROUPS WITH MISSING VALUES:")
+      print.data.frame(g_with_missing)
+      message("\n")
+    } else {
+      message("\n", "No missing values in any group in newly summarized variables")
+      message("\n")
+    }
+    
   }
-  
+
 }
+
 
 
 # EXPORTED FUNCTIONS ----------------------------------------------------------- 
@@ -150,12 +147,7 @@ summarize_all_qc <- function(.tbl, .funs, ..., .group_check = F) {
   out <- do.call(dplyr::summarize_all, .args)
   
   # Print NAs and return outcome
-  na_counter_sum(.orig_data = .tbl, .processed_data = out)
-  
-  if (.group_check == T) {
-    na_counter_grp_sum(.orig_data = .tbl, .processed_data = out)
-  }
-  
+  na_counter_sum(.orig_data = .tbl, .processed_data = out, .group_check = .group_check)
   return(out)
   
 }
@@ -194,11 +186,7 @@ summarize_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check 
   out <- do.call(dplyr::summarize_at, .args)
   
   # Print NAs and return outcome
-  na_counter_sum(.orig_data = .tbl, .processed_data = out)
-  if (.group_check == T) {
-    na_counter_grp_sum(.orig_data = .tbl, .processed_data = out)
-  }
-  
+  na_counter_sum(.orig_data = .tbl, .processed_data = out, .group_check = .group_check)
   return(out)
   
 }
@@ -241,11 +229,7 @@ summarize_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   out <- do.call(dplyr::summarize_if, .args)
   
   # Print NAs and return outcome
-  na_counter_sum(.orig_data = .tbl, .processed_data = out)
-  if (.group_check == T) {
-    na_counter_grp_sum(.orig_data = .tbl, .processed_data = out)
-  }
-  
+  na_counter_sum(.orig_data = .tbl, .processed_data = out, .group_check = .group_check)
   return(out)
   
 }
