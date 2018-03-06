@@ -70,7 +70,7 @@ na_counter_mutate_scoped <- function(.args_type = NULL) {
   # Dropping type from arguments
   .args <- .args_type
   .args$.type <- NULL
-  
+
   # Calling appropriate scope
   if (.args_type$.type == "all") {
     tm_data <- suppressWarnings(do.call(dplyr::transmute_all, args = .args))
@@ -110,7 +110,7 @@ na_counter_grp_mutate_scoped <- function(.args_type = NULL) {
   # Dropping type from arguments
   .args <- .args_type
   .args$.type <- NULL
-  
+
   # Calling appropriate scope
   if (.args_type$.type == "all") {
     tm_data <- suppressMessages(do.call(dplyr::transmute_all, args = .args))
@@ -162,15 +162,15 @@ mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
-  .args <- c(list(".tbl" = .tbl, ".funs" = .funs, ".group_check" = .group_check), add_args)
-  .args_type = c(.args, list(".type" = "all"))
-  
+  .args <- c(list(".tbl" = .tbl, ".funs" = .funs), add_args)
+  .args_type <- c(.args, list(".type" = "all"))
+
   # Performing mutate
   out <- do.call(dplyr::mutate_all, .args)
-  
+
   # Print NAs and return outcome
   na_counter_mutate_scoped(.args_type = .args_type)
-  
+
   if (.group_check == T) {
     na_counter_grp_mutate_scoped(.args_type = .args_type)
   }
@@ -190,7 +190,7 @@ transmute_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
-  .args <- c(list(".tbl" = .tbl, ".funs" = .funs, ".group_check" = .group_check), add_args)
+  .args <- c(list(".tbl" = .tbl, ".funs" = .funs), add_args)
   .args_type = c(.args, list(".type" = "all"))
   
   # Performing mutate
@@ -221,7 +221,7 @@ mutate_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F
   .args <- c(
     list(".tbl" = .tbl, ".vars" = .vars, ".funs" = .funs),
     add_args,
-    list(".cols" = .cols, ".group_check" = .group_check)
+    list(".cols" = .cols)
   )
   .args_type = c(.args, list(".type" = "at"))
 
@@ -253,7 +253,7 @@ transmute_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check 
   .args <- c(
     list(".tbl" = .tbl, ".vars" = .vars, ".funs" = .funs),
     add_args,
-    list(".cols" = .cols, ".group_check" = .group_check)
+    list(".cols" = .cols)
   )
   .args_type = c(.args, list(".type" = "at"))
   
@@ -283,7 +283,7 @@ mutate_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
   .args <- c(
-    list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs, ".group_check" = .group_check), 
+    list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs), 
     add_args
   )
   .args_type = c(.args, list(".type" = "if"))
@@ -314,7 +314,7 @@ transmute_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   # Preparing arguments to pass to functions
   add_args <- rlang::quos(...) 
   .args <- c(
-    list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs, ".group_check" = .group_check), 
+    list(".tbl" = .tbl, ".predicate" = .predicate, ".funs" = .funs), 
     add_args
   )
   .args_type = c(.args, list(".type" = "if"))
