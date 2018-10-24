@@ -1,6 +1,6 @@
 Package: reviewr
 Title: Tools to quality review data wrangling and analysis code
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: person("Adam", "Maier", email = "adam.maier@tntp.org", role = c("aut", "cre"))
 Description: Provides noisy functions that replicate commonly used data
  wrangling steps, like mutating, joining, and filtering. These functions
