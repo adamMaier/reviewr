@@ -34,7 +34,7 @@
 #'   identical to that which is returned when running  \code{dplyr::mutate} or 
 #'   \code{dplyr::transmute} functions.
 #' 
-#' @seealso \code{\link[dplyr]{mutate}}, \code{\link[dplyr]{transmute}}
+#' @seealso \code{\link[dplyr]{mutate}}
 #' 
 #' @examples 
 #' practice_data <- 

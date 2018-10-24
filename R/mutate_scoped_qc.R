@@ -25,7 +25,7 @@
 #'   \code{mutate_at_qc}, \code{mutate_if_qc}, and their \code{transmute} 
 #'   equivalents.
 #' 
-#' @seealso \code{\link[dplyr]{mutate_all}}
+#' @seealso \code{\link[dplyr]{summarize_all}}
 #' 
 #' @examples 
 #' practice_data <- 
