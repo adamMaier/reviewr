@@ -110,6 +110,5 @@ mutate_at_qc(grouped_data, vars(A, B), funs(mean), .group_check = T)
 
 }
 \seealso{
-\code{\link[dplyr]{mutate_all}}, \code{\link[dplyr]{mutate_at}},
-  \code{\link[dplyr]{mutate_if}}
+\code{\link[dplyr]{mutate_all}}
 }

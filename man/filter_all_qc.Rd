@@ -69,6 +69,5 @@ filter_all_qc(grouped_data, dplyr::all_vars(. > 9), .group_check = T)
 
 }
 \seealso{
-\code{\link[dplyr]{filter_all}}, and \code{\link[dplyr]{filter_at}},
-  or \code{\link[dplyr]{filter_if}}
+\code{\link[dplyr]{filter_all}}
 }

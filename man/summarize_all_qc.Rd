@@ -117,6 +117,5 @@ summarize_all_qc(grouped_data, mean, .group_check = T)
 
 }
 \seealso{
-\code{\link[dplyr]{summarise_all}}, 
-  \code{\link[dplyr]{summarise_at}}, \code{\link[dplyr]{summarise_if}}
+\code{\link[dplyr]{summarise_all}}
 }

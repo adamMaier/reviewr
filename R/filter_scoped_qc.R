@@ -18,8 +18,7 @@
 #'   identical to that which is returned when running the respective scoped 
 #'   version of \code{dplyr::filter}.
 #' 
-#' @seealso \code{\link[dplyr]{filter_all}}, and \code{\link[dplyr]{filter_at}},
-#'   or \code{\link[dplyr]{filter_if}}
+#' @seealso \code{\link[dplyr]{filter_all}}
 #' 
 #' @examples 
 #' practice_data <- 

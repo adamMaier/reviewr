@@ -29,8 +29,7 @@
 #'   identical to that which is returned when running the scoped variants of
 #'   \code{dplyr::summarize}.
 #' 
-#' @seealso \code{\link[dplyr]{summarise_all}}, 
-#'   \code{\link[dplyr]{summarise_at}}, \code{\link[dplyr]{summarise_if}}
+#' @seealso \code{\link[dplyr]{summarise_all}}
 #' 
 #' @examples 
 #' practice_data <- 
