@@ -89,6 +89,8 @@
 #' # Right join with both new variables
 #' right_join_qc(data_A, data_B, .merge = "merge_ab", .extra = "extra_ab")
 #' 
+#' @import rlang
+#' @import dplyr
 #' @name join_qc
 NULL
 

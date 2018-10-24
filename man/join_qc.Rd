@@ -64,7 +64,8 @@ variable will be created. An error will occur if a variable is already
 named the value specified in\code{.extra}, so make sure to choose different
 names for different joins.}
 
-\item{...}{other parameters passed onto methods}
+\item{...}{other parameters passed onto methods, for instance, \code{na_matches}
+to control how \code{NA} values are matched.  See \link{join.tbl_df} for more.}
 }
 \description{
 \code{full_join_qc}, \code{inner_join}, \code{left_join}, \code{right_join}, 

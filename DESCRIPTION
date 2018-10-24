@@ -7,14 +7,15 @@ Description: Provides noisy functions that replicate commonly used data
     complete the data wrangle, but also tell you what happened to your data
     -- e.g., how many records were matched, how many NAs were created, how 
     many records were dropped, etc. -- in each step.
-Depends: R (>= 3.2.4)
 License: CC0
 Encoding: UTF-8
 LazyData: true
 Depends:
-    dplyr (>= 0.5.0),
+    R (>= 3.2.4),
+    dplyr (>= 0.5.0)
+Imports:
     rlang (>= 0.1.1)
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr

@@ -2,7 +2,6 @@
 % Please edit documentation in R/filter_qc.R
 \name{filter_qc}
 \alias{filter_qc}
-\alias{filter_qc}
 \title{Report number of dropped cases when performing dplyr filter.}
 \usage{
 filter_qc(.data, ..., .group_check = F)

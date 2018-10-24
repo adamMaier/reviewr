@@ -2,7 +2,6 @@
 % Please edit documentation in R/mutate_qc.R
 \name{mutate_qc}
 \alias{mutate_qc}
-\alias{mutate_qc}
 \alias{transmute_qc}
 \title{Report number of NAs created when performing dplyr mutate}
 \usage{
