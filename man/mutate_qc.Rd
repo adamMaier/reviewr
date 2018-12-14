@@ -89,5 +89,5 @@ mutate_qc(grouped_data, new_var_1 = A + mean(B), mean_b = mean(B), .group_check 
 
 }
 \seealso{
-\code{\link[dplyr]{mutate}}, \code{\link[dplyr]{transmute}}
+\code{\link[dplyr]{mutate}}
 }
