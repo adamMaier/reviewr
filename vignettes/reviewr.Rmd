@@ -27,6 +27,8 @@ Some of the checks performed by `reviewr` are simple and are easy to do without 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 library(reviewr)
+library(dplyr)
+library(magrittr)
 ```
 
 ```{r, echo = TRUE, warning = FALSE}
