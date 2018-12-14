@@ -2,11 +2,21 @@ Package: reviewr
 Title: Tools to quality review data wrangling and analysis code
 Version: 0.0.1
 Authors@R: person("Adam", "Maier", email = "adam.maier@tntp.org", role = c("aut", "cre"))
-Description: Provides noisy functions that replicate commonly used dplyr functions
+Description: Provides noisy functions that replicate commonly used data
+    wrangling steps, like mutating, joining, and filtering. These functions
+    complete the data wrangle, but also tell you what happened to your data
+    -- e.g., how many records were matched, how many NAs were created, how 
+    many records were dropped, etc. -- in each step.
 License: CC0
 Encoding: UTF-8
 LazyData: true
-Depends: R (>= 3.2.4), dplyr (>= 0.5.0), rlang (>= 0.1.1)
+Depends:
+    R (>= 3.2.4)
+Imports:
+    dplyr (>= 0.5.0), 
+    rlang (>= 0.1.1)
 RoxygenNote: 6.1.0
-Suggests: knitr, rmarkdown
+Suggests: 
+    knitr,
+    rmarkdown
 VignetteBuilder: knitr

@@ -89,8 +89,8 @@
 #' # Right join with both new variables
 #' right_join_qc(data_A, data_B, .merge = "merge_ab", .extra = "extra_ab")
 #' 
-#' @import rlang
-#' @import dplyr
+#' @importFrom rlang :=
+#' @importFrom rlang !!
 #' @name join_qc
 NULL
 
@@ -258,7 +258,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     joined <- 
       dplyr::mutate(
         joined,
-        rlang::UQ(.merge) :=
+        !!.merge :=
           dplyr::case_when(
             !is.na(joined$.x_tracker) & is.na(joined$.y_tracker) ~ "left_only",
             is.na(joined$.x_tracker) & !is.na(joined$.y_tracker) ~ "right_only",
@@ -315,7 +315,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     joined <- 
       dplyr::mutate(
         joined,
-        rlang::UQ(.extra) :=
+        !!.extra :=
           dplyr::case_when(
             joined$.x_tracker & joined$.y_tracker ~ "extra_on_both",
             joined$.x_tracker & is.na(joined$.y_tracker) ~ "extra_on_left",
