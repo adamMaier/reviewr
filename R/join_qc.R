@@ -386,7 +386,7 @@ right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
-    anti_joined <- dplyr::anti_join(x = x, y = y, by = by, suffix = suffix, ... = ...)
+    anti_joined <- dplyr::anti_join(x = x, y = y, by = by, copy = copy, ... = ...)
 
     # Calculating merge diagnoses 
     unmatched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
@@ -394,11 +394,11 @@ anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     # Print merge diagnoses
     message(
         "\n",
-        "Anti joins only keep matching cases, so no match diagnosis", "\n",
+        "Anti joins only keep non-matching cases, so no match diagnosis", "\n",
         "Anti joins never create extra rows, so now additional row diagnosis", "\n",
         "\n",
         "DROPPED ROWS", "\n",
-        unmatched_x, " Rows were dropped from left"
+        unmatched_x, " Row(s) were dropped from left"
     )
     
     # Returning data frame
@@ -411,7 +411,7 @@ anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
 semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
     
     # Doing join
-    joined <- dplyr::semi_join(x = x, y = y, by = by, suffix = suffix, ... = ...)
+    joined <- dplyr::semi_join(x = x, y = y, by = by, copy = copy, ... = ...)
     
     # Calculating merge diagnoses 
     unmatched_x <- dplyr::tally(x) - dplyr::tally(joined)
@@ -423,7 +423,7 @@ semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
         "Semi joins never create extra rows, so now additional row diagnosis", "\n",
         "\n",
         "DROPPED ROWS", "\n",
-        unmatched_x, " Rows were dropped from left"
+        unmatched_x, " Row(s) were dropped from left"
     )
     
     # Rreturning data frame
