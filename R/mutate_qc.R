@@ -101,7 +101,7 @@ na_counter_grp_mutate <- function(.orig_data = NULL, .processed_data = NULL, ...
   new_vars <- names(new_vars_list)
   
   # Retain only newly mutated variables plus grouped variables
-  group_vars <- attr(.orig_data, "vars")
+  group_vars <- names(attr(.orig_data, "groups"))[1:(length(names(attr(.orig_data, "groups"))) - 1)]
   all_vars <- c(group_vars, new_vars)
   new_vars_grp_data <- dplyr::select_at(.processed_data, all_vars)
   
@@ -132,7 +132,7 @@ na_counter_grp_mutate <- function(.orig_data = NULL, .processed_data = NULL, ...
 mutate_qc <- function(.data, ..., .group_check = F){
     
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.data, "vars"))) {
+  if (.group_check == T & is.null(attr(.data, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -159,7 +159,7 @@ mutate_qc <- function(.data, ..., .group_check = F){
 transmute_qc <- function(.data, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.data, "vars"))) {
+  if (.group_check == T & is.null(attr(.data, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   

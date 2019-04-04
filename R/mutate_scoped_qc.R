@@ -134,7 +134,7 @@ na_counter_mutate_scoped <- function(.args_type = NULL) {
 mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -158,7 +158,7 @@ mutate_all_qc <- function(.tbl, .funs, ..., .group_check = F){
 transmute_all_qc <- function(.tbl, .funs, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -182,7 +182,7 @@ transmute_all_qc <- function(.tbl, .funs, ..., .group_check = F){
 mutate_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -210,7 +210,7 @@ mutate_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F
 transmute_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -238,7 +238,7 @@ transmute_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check 
 mutate_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -265,7 +265,7 @@ mutate_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
 transmute_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   

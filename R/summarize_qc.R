@@ -73,7 +73,7 @@ NULL
 summarize_qc <- function(.data = NULL, ..., .group_check = F) {
 
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.data, "vars"))) {
+  if (.group_check == T & is.null(attr(.data, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -85,7 +85,7 @@ summarize_qc <- function(.data = NULL, ..., .group_check = F) {
   out <- do.call(dplyr::summarize, .args)
 
   # Dropping group variables from being printed, if any.
-  group_vars <- attr(.data, "vars")
+  group_vars <- names(attr(.data, "groups"))[1:(length(names(attr(.data, "groups"))) - 1)]
   keep_vars <- names(out)[!names(out) %in% group_vars]
   
   if (!is.null(group_vars)) {

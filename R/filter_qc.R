@@ -52,7 +52,7 @@ NULL
 filter_qc <- function(.data, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.data, "vars"))) {
+  if (.group_check == T & is.null(attr(.data, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   

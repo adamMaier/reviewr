@@ -71,7 +71,7 @@ NULL
 na_counter_sum <- function(.orig_data = NULL, .processed_data = NULL, .group_check = NULL) {
 
   # Obtaining names of original group variables, if any.
-  group_vars <- attr(.orig_data, "vars")
+  group_vars <- names(attr(.orig_data, "groups"))[1:(length(names(attr(.orig_data, "groups"))) - 1)]
   
   # Isolating new, summarized variables
   new_vars <- names(.processed_data)[!names(.processed_data) %in% group_vars]
@@ -134,7 +134,7 @@ na_counter_sum <- function(.orig_data = NULL, .processed_data = NULL, .group_che
 summarize_all_qc <- function(.tbl, .funs, ..., .group_check = F) {
     
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -169,7 +169,7 @@ summarise_all_qc <- function(.tbl, .funs, ..., .group_check = F) {
 summarize_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -213,7 +213,7 @@ summarise_at_qc <- function(.tbl, .vars, .funs, ..., .cols = NULL, .group_check 
 summarize_if_qc <- function(.tbl, .predicate, .funs, ..., .group_check = F){
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   

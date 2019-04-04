@@ -86,7 +86,7 @@ dropped_grp_fn <- function(init_data, final_data) {
 filter_all_qc <- function(.tbl, .vars_predicate, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -122,7 +122,7 @@ filter_all_qc <- function(.tbl, .vars_predicate, .group_check = F) {
 filter_at_qc <- function(.tbl, .vars, .vars_predicate, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
@@ -158,7 +158,7 @@ filter_at_qc <- function(.tbl, .vars, .vars_predicate, .group_check = F) {
 filter_if_qc <- function(.tbl, .predicate, .vars_predicate, .group_check = F) {
   
   # Check to make sure data is grouped if .group_check = T
-  if (.group_check == T & is.null(attr(.tbl, "vars"))) {
+  if (.group_check == T & is.null(attr(.tbl, "groups"))) {
     stop("Data is not grouped, so you cannot have .group_check = T")
   }
   
