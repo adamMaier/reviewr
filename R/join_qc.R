@@ -172,29 +172,25 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
   if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
   join_type <- paste("This was a", left_type, "TO", right_type, "join")
-
+  
   
   # Doing join based on which qc function is calling.
   if (type == "full") {
-    joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, 
-                               suffix = suffix, ... = ...)
+    joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "inner") {
-    joined <- dplyr::inner_join(x = x, y = y, by = by, copy = copy, 
-                                suffix = suffix, ... = ...)
+    joined <- dplyr::inner_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "left") {
-    joined <- dplyr::left_join(x = x, y = y, by = by, copy = copy, 
-                               suffix = suffix, ... = ...)
+    joined <- dplyr::left_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "right") {
-    joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, 
-                                suffix = suffix, ... = ...)
+    joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
-
+  
   # Calculating number of matches in newly joined data
   matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
   unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
@@ -326,7 +322,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Return joined data with new .extra variable and dropped tracker variables
     joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
-  
+    
   }
   
   # Regroup data and return
