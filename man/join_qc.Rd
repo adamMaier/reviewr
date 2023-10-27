@@ -10,45 +10,83 @@
 \alias{semi_join_qc}
 \title{Report number of matched and/or extra cases when performing a dplyr join}
 \usage{
-full_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = NULL, .extra = NULL, ...)
+full_join_qc(x, y, by = NULL, copy = FALSE, .merge = NULL, .extra = NULL)
 
-inner_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = NULL, .extra = NULL, ...)
+inner_join_qc(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  .merge = NULL,
+  .extra = NULL,
+  ...
+)
 
-left_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = NULL, .extra = NULL, ...)
+left_join_qc(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  .merge = NULL,
+  .extra = NULL,
+  ...
+)
 
-right_join_qc(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-  .merge = NULL, .extra = NULL, ...)
+right_join_qc(
+  x,
+  y,
+  by = NULL,
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  .merge = NULL,
+  .extra = NULL,
+  ...
+)
 
 anti_join_qc(x, y, by = NULL, copy = FALSE, ...)
 
 semi_join_qc(x, y, by = NULL, copy = FALSE, ...)
 }
 \arguments{
-\item{x}{tbls to join}
+\item{x, y}{A pair of data frames, data frame extensions (e.g. a tibble), or
+lazy data frames (e.g. from dbplyr or dtplyr). See \emph{Methods}, below, for
+more details.}
 
-\item{y}{tbls to join}
+\item{by}{A join specification created with \code{\link[dplyr:join_by]{join_by()}}, or a character
+vector of variables to join by.
 
-\item{by}{a character vector of variables to join by.  If \code{NULL}, the
-default, \code{*_join()} will do a natural join, using all variables with
-common names across the two tables. A message lists the variables so
-that you can check they're right (to suppress the message, simply
-explicitly list the variables that you want to join).
+If \code{NULL}, the default, \verb{*_join()} will perform a natural join, using all
+variables in common across \code{x} and \code{y}. A message lists the variables so
+that you can check they're correct; suppress the message by supplying \code{by}
+explicitly.
 
-To join by different variables on x and y use a named vector.
-For example, \code{by = c("a" = "b")} will match \code{x.a} to
-\code{y.b}.}
+To join on different variables between \code{x} and \code{y}, use a \code{\link[dplyr:join_by]{join_by()}}
+specification. For example, \code{join_by(a == b)} will match \code{x$a} to \code{y$b}.
+
+To join by multiple variables, use a \code{\link[dplyr:join_by]{join_by()}} specification with
+multiple expressions. For example, \code{join_by(a == b, c == d)} will match
+\code{x$a} to \code{y$b} and \code{x$c} to \code{y$d}. If the column names are the same between
+\code{x} and \code{y}, you can shorten this by listing only the variable names, like
+\code{join_by(a, c)}.
+
+\code{\link[dplyr:join_by]{join_by()}} can also be used to perform inequality, rolling, and overlap
+joins. See the documentation at \link[dplyr:join_by]{?join_by} for details on
+these types of joins.
+
+For simple equality joins, you can alternatively specify a character vector
+of variable names to join by. For example, \code{by = c("a", "b")} joins \code{x$a}
+to \code{y$a} and \code{x$b} to \code{y$b}. If variable names differ between \code{x} and \code{y},
+use a named character vector like \code{by = c("x_a" = "y_a", "x_b" = "y_b")}.
+
+To perform a cross-join, generating all combinations of \code{x} and \code{y}, see
+\code{\link[dplyr:cross_join]{cross_join()}}.}
 
 \item{copy}{If \code{x} and \code{y} are not from the same data source,
 and \code{copy} is \code{TRUE}, then \code{y} will be copied into the
 same src as \code{x}.  This allows you to join tables across srcs, but
 it is a potentially expensive operation so you must opt into it.}
-
-\item{suffix}{If there are non-joined duplicate variables in \code{x} and
-\code{y}, these suffixes will be added to the output to disambiguate them.
-Should be a character vector of length 2.}
 
 \item{.merge}{a character value used to name a new character variable, which
 tracks the source of each row of the new, joined data. If \code{NULL}, the
@@ -64,8 +102,11 @@ variable will be created. An error will occur if a variable is already
 named the value specified in\code{.extra}, so make sure to choose different
 names for different joins.}
 
-\item{...}{other parameters passed onto methods, for instance, \code{na_matches}
-to control how \code{NA} values are matched.  See \link{join.tbl_df} for more.}
+\item{suffix}{If there are non-joined duplicate variables in \code{x} and
+\code{y}, these suffixes will be added to the output to disambiguate them.
+Should be a character vector of length 2.}
+
+\item{...}{Other parameters passed onto methods.}
 }
 \description{
 \code{full_join_qc}, \code{inner_join}, \code{left_join}, \code{right_join}, 

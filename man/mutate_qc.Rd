@@ -10,17 +10,21 @@ mutate_qc(.data, ..., .group_check = F)
 transmute_qc(.data, ..., .group_check = F)
 }
 \arguments{
-\item{.data}{A tbl. All main verbs are S3 generics and provide methods
-for \code{\link[=tbl_df]{tbl_df()}}, \code{\link[dtplyr:tbl_dt]{dtplyr::tbl_dt()}} and \code{\link[dbplyr:tbl_dbi]{dbplyr::tbl_dbi()}}.}
+\item{.data}{A data frame, data frame extension (e.g. a tibble), or a
+lazy data frame (e.g. from dbplyr or dtplyr). See \emph{Methods}, below, for
+more details.}
 
-\item{...}{Name-value pairs of expressions. Use \code{NULL} to drop
-a variable.
+\item{...}{<\code{\link[rlang:args_data_masking]{data-masking}}> Name-value pairs.
+The name gives the name of the column in the output.
 
-These arguments are automatically \link[rlang:quo]{quoted} and
-\link[rlang:eval_tidy]{evaluated} in the context of the data
-frame. They support \link[rlang:quasiquotation]{unquoting} and
-splicing. See \code{vignette("programming")} for an introduction to
-these concepts.}
+The value can be:
+\itemize{
+\item A vector of length 1, which will be recycled to the correct length.
+\item A vector the same length as the current group (or the whole data frame
+if ungrouped).
+\item \code{NULL}, to remove the column.
+\item A data frame or tibble, to create multiple columns in the output.
+}}
 
 \item{.group_check}{a logical value, that when TRUE, will print a table with
 each group variable, and columns called "var_name" and  "n_missing" that 
