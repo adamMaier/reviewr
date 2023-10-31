@@ -101,7 +101,7 @@ NULL
 # This function performs the join based on which function called it and prints
 # all of the standard diagnoses
 join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                          .merge = NULL, .extra = NULL, ..., type = NULL) {
+                          .merge = NULL, .extra = NULL, type = NULL) {
   
   # Removing all group attributes from tables, but keeping group of x to 
   # re-apply after merge
@@ -172,29 +172,25 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   if (left_type == 0) left_type <- "ONE" else left_type <- "MANY"
   if (right_type == 0) right_type <- "ONE" else right_type <- "MANY"
   join_type <- paste("This was a", left_type, "TO", right_type, "join")
-
+  
   
   # Doing join based on which qc function is calling.
   if (type == "full") {
-    joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, 
-                               suffix = suffix, ... = ...)
+    joined <- dplyr::full_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "inner") {
-    joined <- dplyr::inner_join(x = x, y = y, by = by, copy = copy, 
-                                suffix = suffix, ... = ...)
+    joined <- dplyr::inner_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "left") {
-    joined <- dplyr::left_join(x = x, y = y, by = by, copy = copy, 
-                               suffix = suffix, ... = ...)
+    joined <- dplyr::left_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
   
   if (type == "right") {
-    joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, 
-                                suffix = suffix, ... = ...)
+    joined <- dplyr::right_join(x = x, y = y, by = by, copy = copy, suffix = suffix)
   }
-
+  
   # Calculating number of matches in newly joined data
   matched <- dplyr::tally(joined, !is.na(.x_tracker) & !is.na(.y_tracker))
   unmatched_x <- dplyr::tally(joined, !is.na(.x_tracker) & is.na(.y_tracker))
@@ -223,12 +219,12 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
   # Counting extra rows created
   anti_n_x <- dplyr::tally(
     suppressMessages(
-      dplyr::anti_join(x, y, by = by, suffix = suffix,  ... = ...)
+      dplyr::anti_join(x, y, by = by, )
     )
   )
   anti_n_y <- dplyr::tally(
     suppressMessages(
-      dplyr::anti_join(y, x, by = by_reverse, suffix = suffix, ... = ...)
+      dplyr::anti_join(y, x, by = by_reverse, )
     )
   )
   extra_rows_x <- matched - (dplyr::tally(x) - anti_n_x)
@@ -276,7 +272,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     # Isolate combinations of ID varaibles in left/right table with more than one,
     # then change column names to match opposite data table.
     x_count <- dplyr::group_by_at(x, matched_vars_left)
-    x_count <- dplyr::summarize(x_count, .x_tracker = n())
+    x_count <- dplyr::summarize(x_count, .x_tracker = dplyr::n())
     x_count <- dplyr::ungroup(x_count)
     x_count <- dplyr::filter(x_count, .x_tracker > 1)
     x_count <- dplyr::select(x_count, -.x_tracker)
@@ -285,7 +281,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     y_extra <- dplyr::mutate(y_extra, .y_tracker = T)
     
     y_count <- dplyr::group_by_at(y, matched_vars_right)
-    y_count <- dplyr::summarize(y_count, .y_tracker = n())
+    y_count <- dplyr::summarize(y_count, .y_tracker = dplyr::n())
     y_count <- dplyr::ungroup(y_count)
     y_count <- dplyr::filter(y_count, .y_tracker > 1)
     y_count <- dplyr::select(y_count, -.y_tracker)
@@ -326,7 +322,7 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
     
     # Return joined data with new .extra variable and dropped tracker variables
     joined <- dplyr::select(joined, -.x_tracker, -.y_tracker)
-  
+    
   }
   
   # Regroup data and return
@@ -341,23 +337,21 @@ join_dispatch <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 
 #' @rdname join_qc
 #' @export
-full_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                         .merge = NULL, .extra = NULL, ...){
+full_join_qc <- function(x, y, by = NULL, copy = FALSE,
+                         .merge = NULL, .extra = NULL){
   
   # Preparing arguments to pass to functions
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
-    ... = ..., type = "full"
+    x = x, y = y, by = by, copy = copy, .merge = .merge, .extra = .extra, type = "full"
   )
 }
 
 #' @rdname join_qc
 #' @export
 inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                         .merge = NULL, .extra = NULL, ...){
+                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
-    ... = ..., type = "inner"
+    x = x, y = y, by = by, copy = copy, .merge = .merge, .extra = .extra, type = "inner"
   )
 }
 
@@ -366,67 +360,65 @@ inner_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
 left_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
-    ... = ..., type = "left"
+    x = x, y = y, by = by, copy = copy, .merge = .merge, .extra = .extra, type = "left"
   )
 }
 
 #' @rdname join_qc
 #' @export
 right_join_qc <- function(x, y, by = NULL, copy = FALSE, suffix = c(".x", ".y"),
-                         .merge = NULL, .extra = NULL, ...){
+                          .merge = NULL, .extra = NULL, ...){
   join_dispatch(
-    x = x, y = y, by = by, copy = copy, suffix = suffix, .merge = .merge, .extra = .extra, 
-    ... = ..., type = "right"
+    x = x, y = y, by = by, copy = copy, .merge = .merge, .extra = .extra, type = "right"
   )
 }
 
 #' @rdname join_qc
 #' @export
 anti_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
-    
-    # Doing join
-    anti_joined <- dplyr::anti_join(x = x, y = y, by = by, copy = copy, ... = ...)
-
-    # Calculating merge diagnoses 
-    unmatched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
-
-    # Print merge diagnoses
-    message(
-        "\n",
-        "Anti joins only keep non-matching cases, so no match diagnosis", "\n",
-        "Anti joins never create extra rows, so now additional row diagnosis", "\n",
-        "\n",
-        "DROPPED ROWS", "\n",
-        unmatched_x, " Row(s) were dropped from left"
-    )
-    
-    # Returning data frame
-    return(anti_joined)
-    
+  
+  # Doing join
+  anti_joined <- dplyr::anti_join(x = x, y = y, by = by, copy = copy, ... = ...)
+  
+  # Calculating merge diagnoses 
+  unmatched_x <- dplyr::tally(x) - dplyr::tally(anti_joined)
+  
+  # Print merge diagnoses
+  message(
+    "\n",
+    "Anti joins only keep non-matching cases, so no match diagnosis", "\n",
+    "Anti joins never create extra rows, so now additional row diagnosis", "\n",
+    "\n",
+    "DROPPED ROWS", "\n",
+    unmatched_x, " Row(s) were dropped from left"
+  )
+  
+  # Returning data frame
+  return(anti_joined)
+  
 }
 
 #' @rdname join_qc
 #' @export
 semi_join_qc <- function(x, y, by = NULL, copy = FALSE, ...){
-    
-    # Doing join
-    joined <- dplyr::semi_join(x = x, y = y, by = by, copy = copy, ... = ...)
-    
-    # Calculating merge diagnoses 
-    unmatched_x <- dplyr::tally(x) - dplyr::tally(joined)
-    
-    # Print merge diagnoses
-    message(
-        "\n",
-        "Semi joins only keep matching cases, so no match diagnosis", "\n",
-        "Semi joins never create extra rows, so now additional row diagnosis", "\n",
-        "\n",
-        "DROPPED ROWS", "\n",
-        unmatched_x, " Row(s) were dropped from left"
-    )
-    
-    # Rreturning data frame
-    return(joined)
-    
+  
+  # Doing join
+  joined <- dplyr::semi_join(x = x, y = y, by = by, copy = copy, ... = ...)
+  
+  # Calculating merge diagnoses 
+  unmatched_x <- dplyr::tally(x) - dplyr::tally(joined)
+  
+  # Print merge diagnoses
+  message(
+    "\n",
+    "Semi joins only keep matching cases, so no match diagnosis", "\n",
+    "Semi joins never create extra rows, so now additional row diagnosis", "\n",
+    "\n",
+    "DROPPED ROWS", "\n",
+    unmatched_x, " Row(s) were dropped from left"
+  )
+  
+  # Rreturning data frame
+  return(joined)
+  
 }
